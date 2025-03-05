@@ -1,0 +1,442 @@
+[
+  {
+    "ContactGroupID": 1,
+    "IndividualID": 53,
+    "position": null
+  },
+  {
+    "ContactGroupID": 2,
+    "IndividualID": 4,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 2,
+    "IndividualID": 3,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 3,
+    "IndividualID": 65,
+    "position": null
+  },
+  {
+    "ContactGroupID": 4,
+    "IndividualID": 65,
+    "position": "Chairman"
+  },
+  {
+    "ContactGroupID": 4,
+    "IndividualID": 75,
+    "position": "Secretary"
+  },
+  {
+    "ContactGroupID": 4,
+    "IndividualID": 73,
+    "position": "Treasurer"
+  },
+  {
+    "ContactGroupID": 4,
+    "IndividualID": 74,
+    "position": "Vice Chair"
+  },
+  {
+    "ContactGroupID": 5,
+    "IndividualID": 76,
+    "position": null
+  },
+  {
+    "ContactGroupID": 6,
+    "IndividualID": 80,
+    "position": null
+  },
+  {
+    "ContactGroupID": 7,
+    "IndividualID": 86,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 7,
+    "IndividualID": 87,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 8,
+    "IndividualID": 43,
+    "position": null
+  },
+  {
+    "ContactGroupID": 9,
+    "IndividualID": 63,
+    "position": null
+  },
+  {
+    "ContactGroupID": 10,
+    "IndividualID": 51,
+    "position": null
+  },
+  {
+    "ContactGroupID": 11,
+    "IndividualID": 60,
+    "position": "Daughter"
+  },
+  {
+    "ContactGroupID": 11,
+    "IndividualID": 59,
+    "position": "Son"
+  },
+  {
+    "ContactGroupID": 11,
+    "IndividualID": 25,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 11,
+    "IndividualID": 26,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 12,
+    "IndividualID": 39,
+    "position": null
+  },
+  {
+    "ContactGroupID": 13,
+    "IndividualID": 79,
+    "position": null
+  },
+  {
+    "ContactGroupID": 14,
+    "IndividualID": 36,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 14,
+    "IndividualID": 72,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 15,
+    "IndividualID": 30,
+    "position": "Son"
+  },
+  {
+    "ContactGroupID": 15,
+    "IndividualID": 29,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 15,
+    "IndividualID": 21,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 16,
+    "IndividualID": 22,
+    "position": null
+  },
+  {
+    "ContactGroupID": 17,
+    "IndividualID": 46,
+    "position": null
+  },
+  {
+    "ContactGroupID": 18,
+    "IndividualID": 58,
+    "position": "Daughter"
+  },
+  {
+    "ContactGroupID": 18,
+    "IndividualID": 57,
+    "position": "Daughter"
+  },
+  {
+    "ContactGroupID": 18,
+    "IndividualID": 56,
+    "position": null
+  },
+  {
+    "ContactGroupID": 18,
+    "IndividualID": 55,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 19,
+    "IndividualID": 48,
+    "position": null
+  },
+  {
+    "ContactGroupID": 20,
+    "IndividualID": 41,
+    "position": null
+  },
+  {
+    "ContactGroupID": 21,
+    "IndividualID": 18,
+    "position": "Life-Partner"
+  },
+  {
+    "ContactGroupID": 21,
+    "IndividualID": 17,
+    "position": "Life-Partner"
+  },
+  {
+    "ContactGroupID": 22,
+    "IndividualID": 24,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 22,
+    "IndividualID": 23,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 23,
+    "IndividualID": 19,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 23,
+    "IndividualID": 20,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 24,
+    "IndividualID": 12,
+    "position": null
+  },
+  {
+    "ContactGroupID": 25,
+    "IndividualID": 11,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 25,
+    "IndividualID": 10,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 26,
+    "IndividualID": 15,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 26,
+    "IndividualID": 16,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 27,
+    "IndividualID": 81,
+    "position": null
+  },
+  {
+    "ContactGroupID": 28,
+    "IndividualID": 40,
+    "position": null
+  },
+  {
+    "ContactGroupID": 29,
+    "IndividualID": 1,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 29,
+    "IndividualID": 2,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 30,
+    "IndividualID": 44,
+    "position": null
+  },
+  {
+    "ContactGroupID": 31,
+    "IndividualID": 31,
+    "position": "Partner"
+  },
+  {
+    "ContactGroupID": 31,
+    "IndividualID": 35,
+    "position": "Partner"
+  },
+  {
+    "ContactGroupID": 32,
+    "IndividualID": 45,
+    "position": null
+  },
+  {
+    "ContactGroupID": 33,
+    "IndividualID": 47,
+    "position": null
+  },
+  {
+    "ContactGroupID": 34,
+    "IndividualID": 50,
+    "position": null
+  },
+  {
+    "ContactGroupID": 35,
+    "IndividualID": 38,
+    "position": null
+  },
+  {
+    "ContactGroupID": 36,
+    "IndividualID": 61,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 36,
+    "IndividualID": 62,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 37,
+    "IndividualID": 42,
+    "position": null
+  },
+  {
+    "ContactGroupID": 38,
+    "IndividualID": 13,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 38,
+    "IndividualID": 14,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 39,
+    "IndividualID": 77,
+    "position": null
+  },
+  {
+    "ContactGroupID": 40,
+    "IndividualID": 64,
+    "position": null
+  },
+  {
+    "ContactGroupID": 41,
+    "IndividualID": 78,
+    "position": null
+  },
+  {
+    "ContactGroupID": 42,
+    "IndividualID": 82,
+    "position": null
+  },
+  {
+    "ContactGroupID": 43,
+    "IndividualID": 83,
+    "position": null
+  },
+  {
+    "ContactGroupID": 44,
+    "IndividualID": 84,
+    "position": null
+  },
+  {
+    "ContactGroupID": 44,
+    "IndividualID": 85,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 45,
+    "IndividualID": 52,
+    "position": null
+  },
+  {
+    "ContactGroupID": 46,
+    "IndividualID": 90,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 46,
+    "IndividualID": 9,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 47,
+    "IndividualID": 37,
+    "position": null
+  },
+  {
+    "ContactGroupID": 48,
+    "IndividualID": 28,
+    "position": "Mother"
+  },
+  {
+    "ContactGroupID": 48,
+    "IndividualID": 27,
+    "position": "Son"
+  },
+  {
+    "ContactGroupID": 48,
+    "IndividualID": 69,
+    "position": "Father"
+  },
+  {
+    "ContactGroupID": 49,
+    "IndividualID": 6,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 49,
+    "IndividualID": 5,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 50,
+    "IndividualID": 7,
+    "position": "Wife"
+  },
+  {
+    "ContactGroupID": 50,
+    "IndividualID": 68,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 51,
+    "IndividualID": 8,
+    "position": null
+  },
+  {
+    "ContactGroupID": 51,
+    "IndividualID": 54,
+    "position": "Husband"
+  },
+  {
+    "ContactGroupID": 52,
+    "IndividualID": 67,
+    "position": "Chair"
+  },
+  {
+    "ContactGroupID": 52,
+    "IndividualID": 66,
+    "position": "Chairman"
+  },
+  {
+    "ContactGroupID": 23,
+    "IndividualID": 71,
+    "position": "Daughter"
+  },
+  {
+    "ContactGroupID": 23,
+    "IndividualID": 70,
+    "position": "Daughter"
+  },
+  {
+    "ContactGroupID": 53,
+    "IndividualID": 77,
+    "position": "Partner"
+  },
+  {
+    "ContactGroupID": 55,
+    "IndividualID": 92,
+    "position": null
+  },
+  {
+    "ContactGroupID": 55,
+    "IndividualID": 93,
+    "position": null
+  }
+]

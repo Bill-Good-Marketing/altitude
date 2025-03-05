@@ -1,0 +1,28 @@
+[phases.setup]
+nixPkgs = ["curl", "jq", "..."]
+
+[phases.install]
+cmds = [
+    "chmod +x /app/build-cycle/begin-deployment.sh",
+    "/app/build-cycle/begin-deployment.sh",
+    "..."
+]
+
+[phases.build]
+cmds = [
+    "chmod +x /app/build-cycle/update-deployment.sh",
+    "chmod +x /app/build-cycle/build.sh",
+    "/app/build-cycle/update-deployment.sh in_progress \"Building project\"",
+    "/app/build-cycle/build.sh",
+]
+
+[phases.post_build]
+cmds = [
+    "chmod +x /app/build-cycle/update-deployment.sh",
+    "/app/build-cycle/update-deployment.sh success \"Automatic deployment on push to Coolify\"",
+    "rm /tmp/deployment"
+]
+dependsOn = ["build"]
+
+[phases.start]
+dependsOn = ["post_build"]

@@ -1,0 +1,1 @@
+npx prisma db execute --file cleardb.sql

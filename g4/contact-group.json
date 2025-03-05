@@ -1,0 +1,434 @@
+[
+  {
+    "ContactGroupID": 52,
+    "Name": "Theatrical Enterprises of Ditchwater",
+    "ImportantInfo": "Partnership, married to each other.",
+    "URL": "www.ditchwaterglobe.com",
+    "type": "Business Owner",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 41,
+    "Name": "Rabbit, Peter",
+    "ImportantInfo": "Nearly deaf from being too near shotgun blast recently.",
+    "URL": null,
+    "type": "Business Owner",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 31,
+    "Name": "Reliable Securities",
+    "ImportantInfo": "Manages retirement accounts for all employees",
+    "URL": null,
+    "type": "Business Owner",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 26,
+    "Name": "Crockett, Davy & Betsy",
+    "ImportantInfo": null,
+    "URL": "www.frontier.org/~dcrockett",
+    "type": "Business Owner",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 25,
+    "Name": "Bunker, Archie & Edith",
+    "ImportantInfo": "Archie wants to be addressed alone for business matters",
+    "URL": "www.archiesplace.com",
+    "type": "Business Owner",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 24,
+    "Name": "Buonarroti, Mike",
+    "ImportantInfo": "Badly wants to keep on owning individual stocks.",
+    "URL": "www.mikespd.com",
+    "type": "Business Owner",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 18,
+    "Name": "Dundee, Croc & Adele",
+    "ImportantInfo": "SHE handles the family money. ",
+    "URL": "www.oxy.net/aadundee.htm",
+    "type": "Business Owner",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 3,
+    "Name": "Oakley--personal",
+    "ImportantInfo": null,
+    "URL": "www.wildwestcircuses.com/annie",
+    "type": "Business Owner",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 22,
+    "Name": "Futurus, Rex & Gwen",
+    "ImportantInfo": "They \"live over the store.\"  Separate phones and e-mails, but same address for home & business.",
+    "URL": "www.avaloncater.com",
+    "type": "Corporate",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 4,
+    "Name": "Wild West Circuses",
+    "ImportantInfo": null,
+    "URL": "www.wildwestcircuses.com",
+    "type": "Corporate",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 53,
+    "Name": "Eel, Murray--Strategic Partner",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Professional",
+    "status": "Strategic Partner"
+  },
+  {
+    "ContactGroupID": 50,
+    "Name": "Bernhardt, Sarah",
+    "ImportantInfo": "Sarah is definitely the decision maker",
+    "URL": "www.ca15.uscourts.gov/judges/sbernhar.htm",
+    "type": "Professional",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 39,
+    "Name": "Eel, Murray",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Professional",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 36,
+    "Name": "Smith, Adam/Jones",
+    "ImportantInfo": null,
+    "URL": "http://www-na.med.utah.com/staff/asmith.html",
+    "type": "Professional",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 23,
+    "Name": "Curie, Pierre & Marie",
+    "ImportantInfo": null,
+    "URL": "www.radinstutah.com",
+    "type": "Professional",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 15,
+    "Name": "Decatur, Steve & Susie",
+    "ImportantInfo": null,
+    "URL": "www.giant.net/memberpages/~jdctr45",
+    "type": "Professional",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 51,
+    "Name": "Besider, Elizabeth",
+    "ImportantInfo": "Sue manages her mother's investments.",
+    "URL": null,
+    "type": "Retired",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 44,
+    "Name": "Tubman, Harriet",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Retired",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 21,
+    "Name": "Crusoe, Uncle Rob & Friday",
+    "ImportantInfo": null,
+    "URL": "www.selkirk.net/~rfcrusoe",
+    "type": "Retired",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 16,
+    "Name": "Einstein, Albert",
+    "ImportantInfo": null,
+    "URL": "http://pantheon.yale.edu/~aeinstei/",
+    "type": "Retired",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 14,
+    "Name": "Oldebucks, Velda",
+    "ImportantInfo": null,
+    "URL": "www.golden.com/members/~veob",
+    "type": "Retired",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 7,
+    "Name": "Windsor, George & Elizabeth",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Retired",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 2,
+    "Name": "Ape, Alice",
+    "ImportantInfo": "Alice is decision-maker, legal owner of all investments.",
+    "URL": null,
+    "type": "Retired",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 48,
+    "Name": "Kipling, Rudyard",
+    "ImportantInfo": null,
+    "URL": "http://www.sltrib.com/staff/rkipling",
+    "type": "Other",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 46,
+    "Name": "Bloom, Leopold & Marion",
+    "ImportantInfo": null,
+    "URL": "www.bigbucks.net/memberpp/~lbloom",
+    "type": "Other",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 43,
+    "Name": "Smith, Margaret Chase",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Other",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 38,
+    "Name": "Columbus, Christopher & America",
+    "ImportantInfo": null,
+    "URL": "www.discover-photo.com",
+    "type": "Other",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 27,
+    "Name": "Foster, Steve",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Other",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 13,
+    "Name": "Rockefeller, John",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Other",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 11,
+    "Name": "Hawthorne, Hester & Thorny",
+    "ImportantInfo": null,
+    "URL": "C:\\\\clients\\\\Hawthorne, Hester and Thorny",
+    "type": "Other",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 6,
+    "Name": "Smith, Kathryn E.",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Other",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 49,
+    "Name": "Beecher, Henry Ward & Eliza",
+    "ImportantInfo": "They do NOT want to be invested overseas!",
+    "URL": "www.plymouthcong.org",
+    "type": "Teacher/Clergy",
+    "status": "Client"
+  },
+  {
+    "ContactGroupID": 42,
+    "Name": "Smith, Bessie",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": "Teacher/Clergy",
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 40,
+    "Name": "O'Hara, Scarlett",
+    "ImportantInfo": null,
+    "URL": "www.churchindesert.org/utah.html",
+    "type": "Teacher/Clergy",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 29,
+    "Name": "Alighieri/Portinari",
+    "ImportantInfo": null,
+    "URL": "www.wcslc.edu/academics/faculty/dalighie.html",
+    "type": "Teacher/Clergy",
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 55,
+    "Name": "Make a Wish Foundation",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Connection"
+  },
+  {
+    "ContactGroupID": 47,
+    "Name": "Doe, Gene",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 45,
+    "Name": "Soforth, Anne",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 37,
+    "Name": "Morr, Ian",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 35,
+    "Name": "Dowe, Jane",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 34,
+    "Name": "Roe, Richard",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 33,
+    "Name": "Public, Jennifer",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 32,
+    "Name": "Moore, Eve N.",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 30,
+    "Name": "Mohr, Sam",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 28,
+    "Name": "Doe, John",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 20,
+    "Name": "Innes, Phil",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 19,
+    "Name": "Public, John Q.",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 17,
+    "Name": "Moore, Steele",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 12,
+    "Name": "Doe, Jeanne",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 10,
+    "Name": "Smith, John",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 9,
+    "Name": "Doe, Jan",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 8,
+    "Name": "Mohr, Juan",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  },
+  {
+    "ContactGroupID": 5,
+    "Name": "Cognito, N.",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Prospect"
+  },
+  {
+    "ContactGroupID": 1,
+    "Name": "Tu, Mee, Mrs.",
+    "ImportantInfo": null,
+    "URL": null,
+    "type": null,
+    "status": "Mass Mail"
+  }
+]

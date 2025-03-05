@@ -1,0 +1,32 @@
+[
+  {
+    "SysUserID": 1,
+    "FirstName": "Susan",
+    "LastName": "Brokerman",
+    "Initials": "sbrokerman"
+  },
+  {
+    "SysUserID": 2,
+    "FirstName": "Robert",
+    "LastName": "Hammer",
+    "Initials": "rhammer"
+  },
+  {
+    "SysUserID": 3,
+    "FirstName": "Jewel",
+    "LastName": "Treasure",
+    "Initials": "jtreasure"
+  },
+  {
+    "SysUserID": 4,
+    "FirstName": "George",
+    "LastName": "Orwell",
+    "Initials": "corwell"
+  },
+  {
+    "SysUserID": 5,
+    "FirstName": "James",
+    "LastName": "Sellers",
+    "Initials": "jsellers"
+  }
+]

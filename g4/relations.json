@@ -1,0 +1,98 @@
+[
+  {
+    "IndividualID1": 3,
+    "position1": "Uncle",
+    "IndividualID2": 6,
+    "position2": "Niece"
+  },
+  {
+    "IndividualID1": 5,
+    "position1": "Referror",
+    "IndividualID2": 61,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 5,
+    "position1": "Referror",
+    "IndividualID2": 14,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 7,
+    "position1": "Mother",
+    "IndividualID2": 56,
+    "position2": "Son"
+  },
+  {
+    "IndividualID1": 7,
+    "position1": "Referror",
+    "IndividualID2": 22,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 8,
+    "position1": "Mother",
+    "IndividualID2": 31,
+    "position2": "Daughter"
+  },
+  {
+    "IndividualID1": 8,
+    "position1": "Referror",
+    "IndividualID2": 27,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 12,
+    "position1": "Referror",
+    "IndividualID2": 90,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 17,
+    "position1": "Uncle",
+    "IndividualID2": 31,
+    "position2": "Niece"
+  },
+  {
+    "IndividualID1": 21,
+    "position1": "Referror",
+    "IndividualID2": 25,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 22,
+    "position1": "Brother",
+    "IndividualID2": 36,
+    "position2": "Sister"
+  },
+  {
+    "IndividualID1": 29,
+    "position1": "Referror",
+    "IndividualID2": 2,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 56,
+    "position1": "Referror",
+    "IndividualID2": 7,
+    "position2": "Referree"
+  },
+  {
+    "IndividualID1": 67,
+    "position1": "Wife",
+    "IndividualID2": 66,
+    "position2": "Husband"
+  },
+  {
+    "IndividualID1": 92,
+    "position1": "Charity",
+    "IndividualID2": 4,
+    "position2": "Member"
+  },
+  {
+    "IndividualID1": 92,
+    "position1": "Charity",
+    "IndividualID2": 31,
+    "position2": "Member"
+  }
+]
