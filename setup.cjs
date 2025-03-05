@@ -5,10 +5,11 @@ const { execSync } = require('child_process');
 
 const rootDir = __dirname;
 
-// Ensure docker-compose.yml exists
-const dockerComposePath = path.join(rootDir, 'docker-compose.yml');
-if (!fs.existsSync(dockerComposePath)) {
-  const dockerComposeContent = `
+// If not running on Vercel (or in production), ensure docker-compose.yml exists.
+if (!process.env.VERCEL) {
+  const dockerComposePath = path.join(rootDir, 'docker-compose.yml');
+  if (!fs.existsSync(dockerComposePath)) {
+    const dockerComposeContent = `
 version: '3'
 services:
   postgres:
@@ -19,11 +20,14 @@ services:
       POSTGRES_DB: altitudecrm
     ports:
       - "5432:5432"
-  `;
-  fs.writeFileSync(dockerComposePath, dockerComposeContent.trim());
-  console.log('Created docker-compose.yml');
+    `;
+    fs.writeFileSync(dockerComposePath, dockerComposeContent.trim());
+    console.log('Created docker-compose.yml');
+  } else {
+    console.log('docker-compose.yml already exists.');
+  }
 } else {
-  console.log('docker-compose.yml already exists.');
+  console.log('Running on Vercel—skipping docker-compose setup.');
 }
 
 // Run generateModels.ts to update TypeScript models automatically
@@ -33,7 +37,7 @@ try {
   console.log('Model generation complete.');
 } catch (err) {
   console.error('Error running generateModels.ts:', err);
-  // Uncomment below if model generation is critical:
+  // Uncomment the next line if model generation is critical:
   // process.exit(1);
 }
 
