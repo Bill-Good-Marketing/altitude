@@ -1,6 +1,20 @@
 // scripts/runMigrations.cjs
 const { execSync } = require('child_process');
 
+function runCommandWithOutput(cmd) {
+  console.log(`Running: ${cmd}`);
+  try {
+    const output = execSync(cmd, { stdio: 'pipe' });
+    const outStr = output.toString();
+    console.log(`Command succeeded: ${cmd}`);
+    return { success: true, output: outStr };
+  } catch (error) {
+    const output = error.stderr ? error.stderr.toString() : error.message;
+    console.error(`Error running "${cmd}": ${output}`);
+    return { success: false, output };
+  }
+}
+
 function runCommand(cmd) {
   console.log(`Running: ${cmd}`);
   try {
@@ -8,9 +22,9 @@ function runCommand(cmd) {
     console.log(`Command succeeded: ${cmd}`);
     return { success: true };
   } catch (error) {
-    const errorOutput = error.stderr ? error.stderr.toString() : error.message;
-    console.error(`Error running "${cmd}": ${errorOutput}`);
-    return { success: false, message: errorOutput };
+    const output = error.stderr ? error.stderr.toString() : error.message;
+    console.error(`Error running "${cmd}": ${output}`);
+    return { success: false, message: output };
   }
 }
 
@@ -28,25 +42,38 @@ function testDatabaseConnection() {
 
 console.log("Starting migration and seed process...");
 
-// 1) Test DB connection.
+// 1) Test the database connection.
 if (!testDatabaseConnection()) {
   console.error("Cannot connect to the database using DATABASE_URL. Exiting.");
   process.exit(1);
 }
 
 // 2) Run Prisma migrations.
-// In production (Vercel), you might use 'prisma migrate deploy'
-// Here we force a dev migration so that if there are changes (e.g. creation of Tenet) it runs.
+// We force a dev migration with a name "create_tenets" (and skip Prisma's seed) even in production.
 const migrationCmd = "npx prisma migrate dev --name create_tenets --skip-seed --force";
 console.log("Running Prisma migrations...");
-const migrationResult = runCommand(migrationCmd);
+const migrationResult = runCommandWithOutput(migrationCmd);
 if (!migrationResult.success) {
-  console.error("Prisma migrations failed. Exiting.");
-  process.exit(1);
+  // Convert output to lowercase for a case-insensitive check.
+  const outLower = migrationResult.output.toLowerCase();
+  if (
+    outLower.includes("no changes detected") ||
+    outLower.includes("empty migration") ||
+    outLower.includes("the migration will be empty")
+  ) {
+    console.log("No migration changes detected; proceeding without error.");
+  } else if (outLower.includes("p3009")) {
+    console.error("Detected migration error P3009. Please resolve migration conflicts.");
+    process.exit(1);
+  } else {
+    console.error("Prisma migrations failed with an unexpected error. Exiting.");
+    process.exit(1);
+  }
+} else {
+  console.log("Prisma migrations applied successfully.");
 }
-console.log("Prisma migrations applied successfully.");
 
-// 3) Generate Prisma client.
+// 3) Generate the Prisma client.
 console.log("Generating Prisma client with SQL support...");
 if (!runCommand("npx prisma generate && npx prisma generate --sql").success) {
   console.error("Failed to generate Prisma client. Exiting.");
