@@ -4,18 +4,21 @@ const { execSync } = require('child_process');
 function runCommand(cmd) {
   console.log(`Running: ${cmd}`);
   try {
-    execSync(cmd, { stdio: 'inherit' });
-    return true;
+    // Use pipe so we can capture output
+    const output = execSync(cmd, { stdio: 'pipe' });
+    console.log(`Command succeeded: ${cmd}`);
+    return output.toString();
   } catch (err) {
-    console.error(`Error running "${cmd}":`, err.message);
-    return err;
+    const errorOutput = err.stderr ? err.stderr.toString() : err.message;
+    console.error(`Error running "${cmd}": ${errorOutput}`);
+    return { error: true, message: errorOutput };
   }
 }
 
 // Step 1: Ensure required schemas exist
 console.log("Ensuring required schemas exist...");
 const schemaResult = runCommand("npx prisma db execute --file scripts/createSchemas.sql");
-if (schemaResult !== true) {
+if (schemaResult.error) {
   console.error("Failed to create required schemas. Exiting.");
   process.exit(1);
 }
@@ -24,28 +27,28 @@ if (schemaResult !== true) {
 console.log("Starting Prisma migrations...");
 let migrationResult = runCommand("npx prisma migrate deploy");
 
-if (migrationResult !== true) {
-  // Check if the error message indicates a failed migration (P3009)
-  if (migrationResult.message && migrationResult.message.includes("P3009")) {
+if (migrationResult.error) {
+  const errorOutput = migrationResult.message;
+  if (errorOutput.includes("P3009")) {
     console.error("Detected failed migration (P3009).");
-    // Force-resolve the problematic migration so Prisma can proceed
+    // Force-resolve the problematic migration
     const resolveCmd = 'npx prisma migrate resolve --applied "20250304001229_crm_addresses"';
     console.log(`Attempting to mark migration as applied: ${resolveCmd}`);
     const resolveResult = runCommand(resolveCmd);
-    if (resolveResult !== true) {
+    if (resolveResult.error) {
       console.error("Failed to resolve the migration automatically. Exiting.");
       process.exit(1);
     }
     console.log("Migration marked as resolved. Re-running migrations...");
     migrationResult = runCommand("npx prisma migrate deploy");
-    if (migrationResult !== true) {
+    if (migrationResult.error) {
       console.error("Migrations still failing after resolving. Exiting.");
       process.exit(1);
     }
     // Optionally, import demo data if needed.
     console.log("Importing demo data...");
     const importResult = runCommand("npx tsx ./import-playground.ts");
-    if (importResult !== true) {
+    if (importResult.error) {
       console.error("Error importing demo data. Exiting.");
       process.exit(1);
     }
