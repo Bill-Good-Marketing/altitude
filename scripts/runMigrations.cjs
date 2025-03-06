@@ -4,20 +4,21 @@ const { execSync } = require('child_process');
 function runCommand(cmd) {
   console.log(`Running: ${cmd}`);
   try {
-    // Using 'inherit' so output streams directly to the console.
+    // Using "inherit" so output is shown in real time.
     execSync(cmd, { stdio: 'inherit' });
     console.log(`Command succeeded: ${cmd}`);
     return { success: true };
   } catch (err) {
-    console.error(`Error running "${cmd}":`, err.message);
-    return { success: false, message: err.message };
+    const errorOutput = err.stderr ? err.stderr.toString() : err.message;
+    console.error(`Error running "${cmd}": ${errorOutput}`);
+    return { success: false, message: errorOutput };
   }
 }
 
 function testDatabaseConnection() {
   console.log("Testing database connection...");
   try {
-    // This command runs a simple query via Prisma.
+    // Run a simple SQL query to ensure connection.
     execSync('echo "SELECT 1;" | npx prisma db execute --stdin', { stdio: 'inherit' });
     console.log("Database connection successful.");
     return true;
@@ -27,35 +28,41 @@ function testDatabaseConnection() {
   }
 }
 
+// ---------------- MAIN SCRIPT ---------------- //
+
+// 1) Test DB connection
 if (!testDatabaseConnection()) {
   console.error("Cannot connect to the database using DATABASE_URL. Exiting.");
   process.exit(1);
 }
 
-console.log("Running Prisma migrations...");
-// On production, Vercel sets process.env.VERCEL, so this uses 'prisma migrate deploy'.
+// 2) Run Prisma migrations.
+// On Vercel (production) use 'prisma migrate deploy'; locally use 'prisma migrate dev'.
 const migrationCmd = process.env.VERCEL
   ? "npx prisma migrate deploy"
   : "npx prisma migrate dev --name auto_migration --skip-seed";
 
+console.log("Starting Prisma migrations...");
 if (!runCommand(migrationCmd).success) {
   console.error("Prisma migrations failed. Exiting.");
   process.exit(1);
 }
+console.log("Migrations applied successfully.");
 
+// 3) Generate Prisma client
 console.log("Generating Prisma client...");
-// Generate the Prisma client; the "--sql" flag is optional if needed.
 if (!runCommand("npx prisma generate && npx prisma generate --sql").success) {
   console.error("Failed to generate Prisma client. Exiting.");
   process.exit(1);
 }
+console.log("Prisma client generated successfully.");
 
-console.log("Seeding database with import-playground.ts...");
-// Finally, seed the database.
+// 4) Seed the database with import-playground.ts
+console.log("Importing demo data with import-playground.ts...");
 if (!runCommand("npx tsx ./import-playground.ts").success) {
   console.error("Error importing demo data. Exiting.");
   process.exit(1);
 }
+console.log("Demo data imported successfully.");
 
-console.log("Migration and seeding complete.");
 process.exit(0);
