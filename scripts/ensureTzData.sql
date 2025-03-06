@@ -1,4 +1,3 @@
--- scripts/ensureTzData.sql
 SET search_path TO crm;
 CREATE TABLE IF NOT EXISTS tz_data (
   id SERIAL PRIMARY KEY,
