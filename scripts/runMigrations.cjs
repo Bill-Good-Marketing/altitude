@@ -1,36 +1,46 @@
-// scripts/runMigrations.js
+// scripts/runMigrations.cjs
 const { execSync } = require('child_process');
 
 function runCommand(cmd) {
   console.log(`Running: ${cmd}`);
-  execSync(cmd, { stdio: 'inherit' });
+  try {
+    execSync(cmd, { stdio: 'inherit' });
+    return true;
+  } catch (err) {
+    console.error(`Error running "${cmd}":`, err.message);
+    return err;
+  }
 }
 
-try {
-  console.log("Attempting prisma migrate deploy...");
-  runCommand("npx prisma migrate deploy");
-  console.log("Migrations applied successfully.");
-} catch (err) {
-  // Check for error code P3009 (failed migration)
-  if (err.message.includes("P3009")) {
-    console.error("Detected failed migrations (P3009).");
-    console.error("Clearing database and re-applying migrations...");
-    try {
-      // Run your cleardb.sql to reset the database
-      runCommand("npx prisma db execute --file cleardb.sql");
-      console.log("Database cleared successfully.");
-      // Re-run migrations
-      runCommand("npx prisma migrate deploy");
-      console.log("Migrations applied successfully after clearing DB.");
-      // Optionally, import demo data if needed
-      runCommand("npx tsx ./import-playground.ts");
-      console.log("Demo data imported successfully.");
-    } catch (innerErr) {
-      console.error("Error during DB clear and migration re-run:", innerErr);
+console.log("Starting Prisma migrations...");
+const migrationResult = runCommand("npx prisma migrate deploy");
+
+if (migrationResult !== true) {
+  // Check if the error message indicates a failed migration (P3009)
+  if (migrationResult.message && migrationResult.message.includes("P3009")) {
+    console.error("Detected failed migration (P3009). Clearing problematic state and retrying...");
+
+    const clearResult = runCommand("npx prisma db execute --file cleardb.sql");
+    if (clearResult !== true) {
+      console.error("Error clearing database. Exiting.");
+      process.exit(1);
+    }
+
+    const retryResult = runCommand("npx prisma migrate deploy");
+    if (retryResult !== true) {
+      console.error("Error re-applying migrations after clearing database. Exiting.");
+      process.exit(1);
+    }
+
+    const importResult = runCommand("npx tsx ./import-playground.ts");
+    if (importResult !== true) {
+      console.error("Error importing demo data. Exiting.");
       process.exit(1);
     }
   } else {
-    console.error("Migration deploy failed:", err);
+    console.error("Migration deploy failed with an unexpected error. Exiting.");
     process.exit(1);
   }
 }
+
+console.log("Migrations applied successfully.");
