@@ -50,6 +50,9 @@
     "ongdb",
     "ongdb-enterprise-1.0.5-unix",
     "jaeger",
-    "jaeger-1.63.0-linux-amd64"
+    "jaeger-1.63.0-linux-amd64",
+    "src/tests",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ]
 }
