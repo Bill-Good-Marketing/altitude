@@ -22,7 +22,7 @@ if (!schemaResult.success) {
   process.exit(1);
 }
 
-// Step 2: Deploy migrations (this should create all tables, including crm.addresses)
+// Step 2: Deploy migrations (this should create all tables per your migration files)
 console.log("Starting Prisma migrations...");
 let migrationResult = runCommand("npx prisma migrate deploy");
 
@@ -67,7 +67,15 @@ if (!ensureAddressesResult.success) {
   process.exit(1);
 }
 
-// Step 4: Generate Prisma client with SQL support
+// Step 4: Ensure crm.tz_data table exists
+console.log("Ensuring crm.tz_data table exists...");
+const ensureTzResult = runCommand("npx prisma db execute --file scripts/ensureTzData.sql");
+if (!ensureTzResult.success) {
+  console.error("Failed to ensure crm.tz_data table exists. Exiting.");
+  process.exit(1);
+}
+
+// Step 5: Generate Prisma client with SQL support
 console.log("Generating Prisma client with SQL support...");
 const genResult = runCommand("npx prisma generate && npx prisma generate --sql");
 if (!genResult.success) {
