@@ -30,7 +30,7 @@ if (!migrationResult.success) {
   const errorOutput = migrationResult.message;
   if (errorOutput.includes("P3009")) {
     console.error("Detected failed migration (P3009).");
-    // Force-resolve the problematic migration
+    // Force-resolve the problematic migration so Prisma can continue
     const resolveCmd = 'npx prisma migrate resolve --applied "20250304001229_crm_addresses"';
     console.log(`Attempting to mark migration as applied: ${resolveCmd}`);
     const resolveResult = runCommand(resolveCmd);
@@ -59,7 +59,15 @@ if (!migrationResult.success) {
 
 console.log("Migrations applied successfully.");
 
-// Step 3: Generate Prisma client with SQL support (after migrations)
+// Step 3: Ensure crm.addresses table exists
+console.log("Ensuring crm.addresses table exists...");
+const ensureAddressesResult = runCommand("npx prisma db execute --file scripts/ensureAddresses.sql");
+if (!ensureAddressesResult.success) {
+  console.error("Failed to ensure crm.addresses table exists. Exiting.");
+  process.exit(1);
+}
+
+// Step 4: Generate Prisma client with SQL support
 console.log("Generating Prisma client with SQL support...");
 const genResult = runCommand("npx prisma generate && npx prisma generate --sql");
 if (!genResult.success) {
