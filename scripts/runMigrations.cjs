@@ -132,3 +132,12 @@ if (!genResult.success) {
   process.exit(1);
 }
 console.log("Prisma client generated successfully.");
+
+// Step 7 (NEW): Always seed demo data
+console.log("Importing demo data with import-playground.ts...");
+const importResult = runCommand("npx tsx ./import-playground.ts");
+if (!importResult.success) {
+  console.error("Error importing demo data. Exiting.");
+  process.exit(1);
+}
+console.log("Demo data imported successfully.");
