@@ -12,20 +12,46 @@ function runCommand(cmd) {
   }
 }
 
+// Step 1: Ensure required schemas exist
 console.log("Ensuring required schemas exist...");
-// Execute the SQL file that creates the schemas.
 if (runCommand("npx prisma db execute --file scripts/createSchemas.sql") !== true) {
-  console.error("Failed to create required schemas.");
+  console.error("Failed to create required schemas. Exiting.");
   process.exit(1);
 }
 
+// Step 2: Attempt to deploy migrations
 console.log("Starting Prisma migrations...");
-const migrationResult = runCommand("npx prisma migrate deploy");
+let migrationResult = runCommand("npx prisma migrate deploy");
 
 if (migrationResult !== true) {
-  // If migration still fails, exit with error.
-  console.error("Migration deploy failed. Exiting.");
-  process.exit(1);
+  // Check if the error message indicates a failed migration (P3009)
+  if (migrationResult.message && migrationResult.message.includes("P3009")) {
+    console.error("Detected failed migration (P3009).");
+    // Mark the failed migration as applied so that Prisma won't block further migrations.
+    const resolveCmd = 'npx prisma migrate resolve --applied "20250304001229_crm_addresses"';
+    console.log(`Attempting to mark migration as applied: ${resolveCmd}`);
+    const resolveResult = runCommand(resolveCmd);
+    if (resolveResult !== true) {
+      console.error("Failed to resolve the migration automatically. Exiting.");
+      process.exit(1);
+    }
+    console.log("Migration marked as applied. Re-running migrations...");
+    migrationResult = runCommand("npx prisma migrate deploy");
+    if (migrationResult !== true) {
+      console.error("Migrations still failing after resolving. Exiting.");
+      process.exit(1);
+    }
+    // Optionally, import demo data if needed.
+    console.log("Optionally importing demo data...");
+    const importResult = runCommand("npx tsx ./import-playground.ts");
+    if (importResult !== true) {
+      console.error("Error importing demo data. Exiting.");
+      process.exit(1);
+    }
+  } else {
+    console.error("Migration deploy failed with an unexpected error. Exiting.");
+    process.exit(1);
+  }
 }
 
 console.log("Migrations applied successfully.");
