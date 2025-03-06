@@ -12,35 +12,20 @@ function runCommand(cmd) {
   }
 }
 
+console.log("Ensuring required schemas exist...");
+// Execute the SQL file that creates the schemas.
+if (runCommand("npx prisma db execute --file scripts/createSchemas.sql") !== true) {
+  console.error("Failed to create required schemas.");
+  process.exit(1);
+}
+
 console.log("Starting Prisma migrations...");
 const migrationResult = runCommand("npx prisma migrate deploy");
 
 if (migrationResult !== true) {
-  // Check if the error message indicates a failed migration (P3009)
-  if (migrationResult.message && migrationResult.message.includes("P3009")) {
-    console.error("Detected failed migration (P3009). Clearing problematic state and retrying...");
-
-    const clearResult = runCommand("npx prisma db execute --file cleardb.sql");
-    if (clearResult !== true) {
-      console.error("Error clearing database. Exiting.");
-      process.exit(1);
-    }
-
-    const retryResult = runCommand("npx prisma migrate deploy");
-    if (retryResult !== true) {
-      console.error("Error re-applying migrations after clearing database. Exiting.");
-      process.exit(1);
-    }
-
-    const importResult = runCommand("npx tsx ./import-playground.ts");
-    if (importResult !== true) {
-      console.error("Error importing demo data. Exiting.");
-      process.exit(1);
-    }
-  } else {
-    console.error("Migration deploy failed with an unexpected error. Exiting.");
-    process.exit(1);
-  }
+  // If migration still fails, exit with error.
+  console.error("Migration deploy failed. Exiting.");
+  process.exit(1);
 }
 
 console.log("Migrations applied successfully.");
