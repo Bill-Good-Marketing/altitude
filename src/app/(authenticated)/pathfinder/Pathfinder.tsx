@@ -1,33 +1,50 @@
 "use client";
 
+// 1) Add minimal definitions for SpeechRecognition & event types
 declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+  interface SpeechRecognition {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+
+    // Match the type from @types/dom-speech-recognition
+    onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+
+    start(): void;
+    stop(): void;
+    // ... add more if needed
   }
 
-  // Minimal set of Web Speech API types used in your onresult callback
-  interface SpeechRecognitionAlternative {
-    readonly transcript: string;
-    readonly confidence: number;
+  // Minimal shape for the speech event
+  interface SpeechRecognitionEvent extends Event {
+    readonly results: SpeechRecognitionResultList;
+    readonly resultIndex: number;
   }
-
   interface SpeechRecognitionResult {
     readonly isFinal: boolean;
     readonly length: number;
     item(index: number): SpeechRecognitionAlternative;
     [index: number]: SpeechRecognitionAlternative;
   }
-
+  interface SpeechRecognitionAlternative {
+    readonly transcript: string;
+    readonly confidence: number;
+  }
   interface SpeechRecognitionResultList {
     readonly length: number;
     item(index: number): SpeechRecognitionResult;
     [index: number]: SpeechRecognitionResult;
   }
 
-  interface SpeechRecognitionEvent extends Event {
-    readonly results: SpeechRecognitionResultList;
-    readonly resultIndex: number;
+  // Reference to the constructor
+  interface SpeechRecognitionConstructor {
+    new (): SpeechRecognition;
+  }
+
+  // Now the window properties
+  interface Window {
+    SpeechRecognition: SpeechRecognitionConstructor;
+    webkitSpeechRecognition: SpeechRecognitionConstructor;
   }
 }
 
@@ -99,12 +116,12 @@ import {
 import { Input } from "~/components/ui/input";
 import { toast } from "sonner";
 
+// Minimal interface(s) for your requests
 interface CommonRequest {
   id: number;
   text: string;
   icon: string | null;
 }
-
 interface CommonRequestGroup {
   id: number;
   name: string;
@@ -119,7 +136,7 @@ export function Pathfinder() {
   const [canSubmit, setCanSubmit] = useState(true);
   const [speechRecognitionEnabled, setSpeechRecognitionEnabled] = useState(false);
 
-  // Manage your common requests (sample data)
+  // Some example requests
   const [commonRequestGroups, setCommonRequestGroups] = useState<
     CommonRequestGroup[]
   >([
@@ -128,11 +145,7 @@ export function Pathfinder() {
       name: "General",
       requests: [
         { id: 1, text: "What do I need to do today?", icon: "Calendar" },
-        {
-          id: 5,
-          text: "What do I need to do for this client today?",
-          icon: "Calendar",
-        },
+        { id: 5, text: "What do I need to do for this client today?", icon: "Calendar" },
         { id: 2, text: "Generate a report", icon: "FileText" },
       ],
     },
@@ -147,27 +160,38 @@ export function Pathfinder() {
       requests: [{ id: 4, text: "Update client information", icon: "Users" }],
     },
   ]);
-
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<any | null>(null); // simplified
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [speechToTextPreValue, setSpeechToTextPreValue] = useState("");
   const speechToTextPreValueRef = useStateRef(speechToTextPreValue);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isPersonalitySelectorOpen, setIsPersonalitySelectorOpen] = useState(false);
 
+  // Chat code from ai/react
+  const regex = /^\/contacts\/([0-9a-f]{26})\/?$/;
+  const { messages, input, append, setInput, setMessages, stop } = useChat({
+    body: {
+      tzOffset: new Date().getTimezoneOffset(),
+      contact: regex.test(path) ? { id: contactId, fullName: contactName } : null,
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error(error.message);
+    },
+  });
+
+  // Basic toggling
   const handleVoiceToText = () => {
     setIsListening((prev) => !prev);
   };
 
-  // If your effect only depends on "isListening" to start/stop SR,
-  // keep the dependency array minimal. We remove "eslint-disable" here.
+  // Start or stop speech recognition in response to isListening
   useEffect(() => {
     if (isListening) {
       const sr = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      // For convenience, store the input value at the start of listening
-      setSpeechToTextPreValue(input);
+      setSpeechToTextPreValue(input); // store current input
       sr.continuous = true;
       sr.interimResults = true;
       sr.lang = "en-US";
@@ -175,7 +199,6 @@ export function Pathfinder() {
       sr.onresult = (event: SpeechRecognitionEvent) => {
         let interim_transcript = "";
 
-        // Combine all partial transcripts
         for (const result of event.results) {
           interim_transcript += result[0].transcript;
         }
@@ -194,8 +217,8 @@ export function Pathfinder() {
           .replace(/ dash/gi, "-")
           .replace(/ underscore/gi, "_");
 
-        // Append partial text to the input
         if (interim_transcript.length > 0) {
+          // Merge partial results with previously typed input
           setInput(speechToTextPreValueRef.current + interim_transcript);
         }
       };
@@ -203,23 +226,72 @@ export function Pathfinder() {
       sr.start();
       setRecognition(sr);
     } else {
+      // Stopped listening
       if (recognition) {
         recognition.stop();
         setRecognition(null);
       }
-      // Save the last input value so we can resume if we toggle listening again
       setSpeechToTextPreValue(input);
     }
-  }, [isListening]); // <--- only depends on isListening
+  }, [isListening]);
 
+  // Enable speech + toggle drawer with ` or ~
+  useEffect(() => {
+    setSpeechRecognitionEnabled(true);
+
+    const listener = (event: KeyboardEvent) => {
+      // Toggle the drawer with ` or ~ (except if typing in the input)
+      if (
+        (event.key === "`" || event.key === "~") &&
+        document.activeElement?.getAttribute("id") !== "pathfinder-input"
+      ) {
+        event.preventDefault();
+        setVisible((prev) => !prev);
+      }
+    };
+    window.addEventListener("keypress", listener);
+    return () => {
+      window.removeEventListener("keypress", listener);
+    };
+  }, []);
+
+  // Merge successive "tool" messages into one "AI Actions"
+  const _messages: Message[] = [];
+  for (const message of messages) {
+    if (_messages.length === 0 || message.toolInvocations == null) {
+      _messages.push(message);
+    } else {
+      const lastMessage = _messages[_messages.length - 1];
+      if (lastMessage.toolInvocations != null && message.toolInvocations != null) {
+        lastMessage.toolInvocations.push(...message.toolInvocations);
+      } else {
+        _messages.push({
+          ...message,
+          toolInvocations: [...(message.toolInvocations || [])],
+        });
+      }
+    }
+  }
+
+  // Scroll logic
+  const messageBoxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    messageBoxRef.current?.scrollTo({
+      top: messageBoxRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [messages]);
+
+  // Upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Implement your file upload logic here
       console.log("File uploaded:", file.name);
+      // Implement actual upload logic here
     }
   };
 
+  // Groups
   const handleGroupChange = (index: number) => {
     setCurrentGroupIndex(index);
   };
@@ -238,65 +310,6 @@ export function Pathfinder() {
         return null;
     }
   };
-
-  const regex = /^\/contacts\/([0-9a-f]{26})\/?$/;
-
-  const { messages, input, append, setInput, setMessages, stop } = useChat({
-    body: {
-      tzOffset: new Date().getTimezoneOffset(),
-      contact: regex.test(path) ? { id: contactId, fullName: contactName } : null,
-    },
-    onError: (error) => {
-      console.error(error);
-      toast.error(error.message);
-    },
-  });
-
-  useEffect(() => {
-    setSpeechRecognitionEnabled(true);
-
-    // Toggle the pathfinder drawer with ` or ~
-    const listener = (event: KeyboardEvent) => {
-      if (
-        (event.key === "`" || event.key === "~") &&
-        document.activeElement?.getAttribute("id") !== "pathfinder-input"
-      ) {
-        event.preventDefault();
-        setVisible((prev) => !prev);
-      }
-    };
-
-    window.addEventListener("keypress", listener);
-    return () => {
-      window.removeEventListener("keypress", listener);
-    };
-  }, []);
-
-  // Merge successive "tool" messages into a single "AI Actions" block
-  const _messages: Message[] = [];
-  for (const message of messages) {
-    if (_messages.length === 0 || message.toolInvocations == null) {
-      _messages.push(message);
-    } else {
-      const lastMessage = _messages[_messages.length - 1];
-      if (lastMessage.toolInvocations != null && message.toolInvocations != null) {
-        lastMessage.toolInvocations.push(...message.toolInvocations);
-      } else {
-        _messages.push({
-          ...message,
-          toolInvocations: [...(message.toolInvocations || [])],
-        });
-      }
-    }
-  }
-
-  const messageBoxRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    messageBoxRef.current?.scrollTo({
-      top: messageBoxRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
 
   return (
     <>
@@ -321,7 +334,11 @@ export function Pathfinder() {
                 >
                   <UserCircle2 className="h-6 w-6" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(true)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsDrawerOpen(true)}
+                >
                   <Settings2 className="h-6 w-6" />
                 </Button>
                 <Button
@@ -472,11 +489,7 @@ export function Pathfinder() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant={"ghost"}
-                        size={"icon"}
-                        onClick={() => setMessages([])}
-                      >
+                      <Button variant={"ghost"} size={"icon"} onClick={() => setMessages([])}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </TooltipTrigger>
@@ -486,11 +499,7 @@ export function Pathfinder() {
 
                 <PlaceholdersAndVanishInput
                   id={"pathfinder-input"}
-                  placeholders={[
-                    "Something or other...",
-                    "Another thing...",
-                    "Something else...",
-                  ]}
+                  placeholders={["Something or other...", "Another thing...", "Something else..."]}
                   onChange={setInput}
                   value={input}
                   onSubmit={() => {
@@ -514,16 +523,16 @@ export function Pathfinder() {
                         onClick={() => {
                           stop();
                           setCanSubmit(false);
-                          const messages = [..._messages];
+                          const messagesCopy = [..._messages];
                           while (
-                            messages.length > 0 &&
-                            messages[messages.length - 1].role !== "user"
+                            messagesCopy.length > 0 &&
+                            messagesCopy[messagesCopy.length - 1].role !== "user"
                           ) {
-                            messages.pop();
+                            messagesCopy.pop();
                           }
-                          const lastMessage = messages.pop();
+                          const lastMessage = messagesCopy.pop();
                           if (lastMessage) {
-                            setMessages(messages);
+                            setMessages(messagesCopy);
                             append({
                               role: "user",
                               content: lastMessage.content,
@@ -599,6 +608,7 @@ export function Pathfinder() {
   );
 }
 
+// Personality Selector
 type PersonalitySelectorProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -616,7 +626,6 @@ function PersonalitySelector({ isOpen, onClose, isFullScreen }: PersonalitySelec
   const [selectedPersonality, setSelectedPersonality] = useState("professional");
 
   const handleSave = () => {
-    // Implement personality change logic here
     console.log("Selected personality:", selectedPersonality);
     onClose();
   };
@@ -666,6 +675,7 @@ function PersonalitySelector({ isOpen, onClose, isFullScreen }: PersonalitySelec
   );
 }
 
+// Config Drawer
 type ConfigDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -684,10 +694,11 @@ export function ConfigDrawer({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [localGroups, setLocalGroups] = useState(commonRequestGroups);
-  const [selectedGroupId, setSelectedGroupId] = useState(commonRequestGroups[0]?.id || 0);
+  const [selectedGroupId, setSelectedGroupId] = useState(
+    commonRequestGroups[0]?.id || 0
+  );
   const [newGroupName, setNewGroupName] = useState("");
 
-  // Keep localGroups in sync if parent updates them
   useEffect(() => {
     setLocalGroups(commonRequestGroups);
   }, [commonRequestGroups]);
@@ -733,7 +744,10 @@ export function ConfigDrawer({
     setLocalGroups((prevGroups) =>
       prevGroups.map((group) =>
         group.id === groupId
-          ? { ...group, requests: group.requests.filter((req) => req.id !== id) }
+          ? {
+              ...group,
+              requests: group.requests.filter((req) => req.id !== id),
+            }
           : group
       )
     );
