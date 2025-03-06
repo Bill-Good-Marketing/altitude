@@ -1,16 +1,12 @@
 "use client";
 
-// --[ 1) Minimal Web Speech API typings ]--------------------------------------
 declare global {
   interface Window {
     SpeechRecognition: typeof SpeechRecognition;
     webkitSpeechRecognition: typeof SpeechRecognition;
   }
 
-  /**
-   * Minimal set of Web Speech API types you actually need
-   * for your usage in onresult. 
-   */
+  // Minimal set of Web Speech API types used in your onresult callback
   interface SpeechRecognitionAlternative {
     readonly transcript: string;
     readonly confidence: number;
@@ -29,17 +25,11 @@ declare global {
     [index: number]: SpeechRecognitionResult;
   }
 
-  /**
-   * Overloads the 'SpeechRecognitionEvent' name if you want to 
-   * keep the same name. This event includes the 'results' property.
-   */
   interface SpeechRecognitionEvent extends Event {
     readonly results: SpeechRecognitionResultList;
     readonly resultIndex: number;
   }
 }
-
-// --[ 2) The rest of your Pathfinder code ]------------------------------------
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -125,12 +115,11 @@ export function Pathfinder() {
   const { contactId, contactName } = useAIContext();
   const path = usePathname();
 
-  const [visible, setVisible] = React.useState(false);
-  const [canSubmit, setCanSubmit] = React.useState(true);
-  const [speechRecognitionEnabled, setSpeechRecognitionEnabled] =
-    useState(false);
+  const [visible, setVisible] = useState(false);
+  const [canSubmit, setCanSubmit] = useState(true);
+  const [speechRecognitionEnabled, setSpeechRecognitionEnabled] = useState(false);
 
-  // TODO: Make this persisted
+  // Manage your common requests (sample data)
   const [commonRequestGroups, setCommonRequestGroups] = useState<
     CommonRequestGroup[]
   >([
@@ -158,41 +147,45 @@ export function Pathfinder() {
       requests: [{ id: 4, text: "Update client information", icon: "Users" }],
     },
   ]);
+
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<any | null>(null); // using `any` for window-based speech
+  const [recognition, setRecognition] = useState<any | null>(null); // simplified
   const [speechToTextPreValue, setSpeechToTextPreValue] = useState("");
   const speechToTextPreValueRef = useStateRef(speechToTextPreValue);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isPersonalitySelectorOpen, setIsPersonalitySelectorOpen] =
-    useState(false);
+  const [isPersonalitySelectorOpen, setIsPersonalitySelectorOpen] = useState(false);
 
   const handleVoiceToText = () => {
-    setIsListening(!isListening);
+    setIsListening((prev) => !prev);
   };
 
-  // Wire up the speech recognition in an effect
+  // If your effect only depends on "isListening" to start/stop SR,
+  // keep the dependency array minimal. We remove "eslint-disable" here.
   useEffect(() => {
     if (isListening) {
       const sr = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      // For convenience, store the input value at the start of listening
       setSpeechToTextPreValue(input);
       sr.continuous = true;
       sr.interimResults = true;
       sr.lang = "en-US";
+
       sr.onresult = (event: SpeechRecognitionEvent) => {
         let interim_transcript = "";
 
-        for (const item of event.results) {
-          interim_transcript += item[0].transcript;
+        // Combine all partial transcripts
+        for (const result of event.results) {
+          interim_transcript += result[0].transcript;
         }
 
+        // Basic voice formatting
         interim_transcript = interim_transcript
           .replace(/ comma/gi, ",")
           .replace(/ period/gi, ".")
           .replace(/ question mark/gi, "?")
-          .replace(/ exclamation point/gi, "!")
-          .replace(/ exclamation mark/gi, "!")
+          .replace(/ exclamation (point|mark)/gi, "!")
           .replace(/ new line/gi, "\n")
           .replace(/ new paragraph/gi, "\n")
           .replace(/ semicolon/gi, ";")
@@ -201,10 +194,12 @@ export function Pathfinder() {
           .replace(/ dash/gi, "-")
           .replace(/ underscore/gi, "_");
 
+        // Append partial text to the input
         if (interim_transcript.length > 0) {
           setInput(speechToTextPreValueRef.current + interim_transcript);
         }
       };
+
       sr.start();
       setRecognition(sr);
     } else {
@@ -212,15 +207,15 @@ export function Pathfinder() {
         recognition.stop();
         setRecognition(null);
       }
+      // Save the last input value so we can resume if we toggle listening again
       setSpeechToTextPreValue(input);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isListening]);
+  }, [isListening]); // <--- only depends on isListening
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Implement file upload and processing here
+      // Implement your file upload logic here
       console.log("File uploaded:", file.name);
     }
   };
@@ -257,12 +252,11 @@ export function Pathfinder() {
     },
   });
 
-  // Enable speech recognition feature
   useEffect(() => {
     setSpeechRecognitionEnabled(true);
 
+    // Toggle the pathfinder drawer with ` or ~
     const listener = (event: KeyboardEvent) => {
-      // Toggle the drawer with the ~ or ` keys
       if (
         (event.key === "`" || event.key === "~") &&
         document.activeElement?.getAttribute("id") !== "pathfinder-input"
@@ -278,9 +272,8 @@ export function Pathfinder() {
     };
   }, []);
 
-  // Merge successive tool calls into a single "AI Actions" message
+  // Merge successive "tool" messages into a single "AI Actions" block
   const _messages: Message[] = [];
-
   for (const message of messages) {
     if (_messages.length === 0 || message.toolInvocations == null) {
       _messages.push(message);
@@ -289,7 +282,10 @@ export function Pathfinder() {
       if (lastMessage.toolInvocations != null && message.toolInvocations != null) {
         lastMessage.toolInvocations.push(...message.toolInvocations);
       } else {
-        _messages.push({ ...message, toolInvocations: [...(message.toolInvocations || [])] });
+        _messages.push({
+          ...message,
+          toolInvocations: [...(message.toolInvocations || [])],
+        });
       }
     }
   }
@@ -315,7 +311,7 @@ export function Pathfinder() {
           )}
         >
           <DrawerHeader>
-            <div className={"flex items-center justify-between"}>
+            <div className="flex items-center justify-between">
               <DrawerTitle>Pathfinder AI</DrawerTitle>
               <div className="flex items-center space-x-2">
                 <Button
@@ -328,7 +324,11 @@ export function Pathfinder() {
                 <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(true)}>
                   <Settings2 className="h-6 w-6" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsFullscreen(!isFullscreen)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                >
                   {isFullscreen ? (
                     <Minimize2 className="h-6 w-6" />
                   ) : (
@@ -374,9 +374,7 @@ export function Pathfinder() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (!canSubmit) {
-                      return;
-                    }
+                    if (!canSubmit) return;
                     setCanSubmit(false);
                     setIsListening(false);
                     append({
@@ -387,9 +385,9 @@ export function Pathfinder() {
                     });
                   }}
                   className="flex items-center
-                  bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
-                  dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
-                  transition-colors"
+                    bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
+                    dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
+                    transition-colors"
                 >
                   {getIcon(request.icon)}
                   <span className="truncate">{request.text}</span>
@@ -405,9 +403,7 @@ export function Pathfinder() {
             })}
           >
             <div
-              className={
-                "overflow-y-auto low-profile-scrollbar px-4 space-y-4 h-[calc(92%-3rem)]"
-              }
+              className="overflow-y-auto low-profile-scrollbar px-4 space-y-4 h-[calc(92%-3rem)]"
               ref={messageBoxRef}
             >
               {_messages.map((message) => (
@@ -428,21 +424,19 @@ export function Pathfinder() {
                         <CardTitle>AI Actions</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        {message.toolInvocations.map((toolInvocation) => {
-                          return (
-                            <Tool
-                              key={toolInvocation.toolCallId}
-                              name={toolInvocation.toolName}
-                              args={toolInvocation.args}
-                              result={
-                                toolInvocation.state === "result"
-                                  ? toolInvocation.result
-                                  : undefined
-                              }
-                              state={toolInvocation.state}
-                            />
-                          );
-                        })}
+                        {message.toolInvocations.map((toolInvocation) => (
+                          <Tool
+                            key={toolInvocation.toolCallId}
+                            name={toolInvocation.toolName}
+                            args={toolInvocation.args}
+                            result={
+                              toolInvocation.state === "result"
+                                ? toolInvocation.result
+                                : undefined
+                            }
+                            state={toolInvocation.state}
+                          />
+                        ))}
                       </CardContent>
                     </Card>
                   ) : (
@@ -467,24 +461,29 @@ export function Pathfinder() {
                 </motion.div>
               ))}
             </div>
-            <div className={"mt-4"}>
-              <hr className={"mb-4"} />
+            <div className="mt-4">
+              <hr className="mb-4" />
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className={"flex items-center justify-center"}
+                className="flex items-center justify-center"
               >
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant={"ghost"} size={"icon"} onClick={() => setMessages([])}>
-                        <Trash2 className={"h-4 w-4 text-red-500"} />
+                      <Button
+                        variant={"ghost"}
+                        size={"icon"}
+                        onClick={() => setMessages([])}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Clear conversation</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+
                 <PlaceholdersAndVanishInput
                   id={"pathfinder-input"}
                   placeholders={[
@@ -495,9 +494,7 @@ export function Pathfinder() {
                   onChange={setInput}
                   value={input}
                   onSubmit={() => {
-                    if (!canSubmit) {
-                      return;
-                    }
+                    if (!canSubmit) return;
                     setCanSubmit(false);
                     setIsListening(false);
                     append({
@@ -518,14 +515,12 @@ export function Pathfinder() {
                           stop();
                           setCanSubmit(false);
                           const messages = [..._messages];
-
                           while (
                             messages.length > 0 &&
                             messages[messages.length - 1].role !== "user"
                           ) {
                             messages.pop();
                           }
-
                           const lastMessage = messages.pop();
                           if (lastMessage) {
                             setMessages(messages);
@@ -547,6 +542,7 @@ export function Pathfinder() {
                     </TooltipTrigger>
                     <TooltipContent>Resend last message</TooltipContent>
                   </Tooltip>
+
                   {speechRecognitionEnabled && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -559,15 +555,14 @@ export function Pathfinder() {
                       </TooltipContent>
                     </Tooltip>
                   )}
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <label htmlFor="file-upload" className="cursor-pointer">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() =>
-                            document.getElementById("file-upload")?.click()
-                          }
+                          onClick={() => document.getElementById("file-upload")?.click()}
                         >
                           <Upload className="h-4 w-4" />
                         </Button>
@@ -689,13 +684,11 @@ export function ConfigDrawer({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
   const [localGroups, setLocalGroups] = useState(commonRequestGroups);
-  const [selectedGroupId, setSelectedGroupId] = useState(
-    commonRequestGroups[0]?.id || 0
-  );
+  const [selectedGroupId, setSelectedGroupId] = useState(commonRequestGroups[0]?.id || 0);
   const [newGroupName, setNewGroupName] = useState("");
 
+  // Keep localGroups in sync if parent updates them
   useEffect(() => {
-    // Keep localGroups in sync if parent updates them
     setLocalGroups(commonRequestGroups);
   }, [commonRequestGroups]);
 
@@ -755,10 +748,7 @@ export function ConfigDrawer({
           g.id === groupId
             ? {
                 ...g,
-                requests: [
-                  ...g.requests,
-                  { id: newId, text: "New Request", icon: null },
-                ],
+                requests: [...g.requests, { id: newId, text: "New Request", icon: null }],
               }
             : g
         )
@@ -843,9 +833,9 @@ export function ConfigDrawer({
                     <Button
                       variant="outline"
                       className="w-full justify-start text-left
-                      bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
-                      dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
-                      transition-colors"
+                        bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
+                        dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
+                        transition-colors"
                     >
                       {getIcon(request.icon)}
                       <span className="truncate">{request.text}</span>
