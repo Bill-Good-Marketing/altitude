@@ -4,7 +4,6 @@ const { execSync } = require('child_process');
 function runCommand(cmd) {
   console.log(`Running: ${cmd}`);
   try {
-    // Use pipe so we can capture output
     const output = execSync(cmd, { stdio: 'pipe' });
     console.log(`Command succeeded: ${cmd}`);
     return output.toString();
@@ -23,7 +22,15 @@ if (schemaResult.error) {
   process.exit(1);
 }
 
-// Step 2: Attempt to deploy migrations
+// Step 2: Generate Prisma client (including SQL client)
+console.log("Generating Prisma client with SQL support...");
+const genResult = runCommand("npx prisma generate && npx prisma generate --sql");
+if (genResult.error) {
+  console.error("Failed to generate Prisma client. Exiting.");
+  process.exit(1);
+}
+
+// Step 3: Attempt to deploy migrations
 console.log("Starting Prisma migrations...");
 let migrationResult = runCommand("npx prisma migrate deploy");
 
@@ -45,7 +52,7 @@ if (migrationResult.error) {
       console.error("Migrations still failing after resolving. Exiting.");
       process.exit(1);
     }
-    // Optionally, import demo data if needed.
+    // Optionally, import demo data.
     console.log("Importing demo data...");
     const importResult = runCommand("npx tsx ./import-playground.ts");
     if (importResult.error) {
