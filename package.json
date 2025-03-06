@@ -17,7 +17,7 @@
     "build": "npx prisma generate && npx prisma generate --sql && npx next build",
     "start": "npx next start",
     "lint": "npx next lint",
-    "postinstall": "node scripts/runMigrations.cjs"
+    "postinstall": "npx prisma generate && node scripts/runMigrations.cjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.7",
