@@ -1,4 +1,8 @@
-UPDATE "crm"."addresses"
-SET "timezone" = (
-    SELECT "tz" FROM "crm"."tz_data" WHERE "countryCode" = $1 AND "provinceName" = $2 AND "name" = $3
+SET search_path TO crm;
+CREATE TABLE IF NOT EXISTS tz_data (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  provinceName TEXT NOT NULL,
+  countryCode VARCHAR(2) NOT NULL,
+  tz TEXT NOT NULL
 );
