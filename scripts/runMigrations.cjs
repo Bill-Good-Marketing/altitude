@@ -74,7 +74,7 @@ if (!migrationResult.success) {
 console.log("Migrations applied successfully.");
 
 // 5) Clear DB with DELETE (if CLEAR_DB=true)
-if (process.env.CLEAR_DB === 'true') {
+if (process.env.CLEAR_DB === 'false') {
   console.log("Clearing the database via cleardb.sql (DELETE statements)...");
   let clearDbResult = runCommand("npx prisma db execute --file scripts/cleardb.sql");
   if (!clearDbResult.success) {
