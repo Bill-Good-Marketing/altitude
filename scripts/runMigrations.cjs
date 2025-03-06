@@ -1,4 +1,3 @@
-// scripts/runMigrations.cjs
 const { execSync } = require('child_process');
 
 function runCommand(cmd) {
@@ -18,11 +17,36 @@ function sleep(seconds) {
   try {
     execSync(`sleep ${seconds}`);
   } catch (err) {
-    // ignore errors
+    // Ignore errors
   }
 }
 
-// Step 1: Ensure required schemas exist
+function testDatabaseConnection() {
+  console.log("Testing database connection...");
+  // Use a simple SELECT query to test the connection.
+  // Note: We're using the Prisma CLI's "db execute" with --stdin.
+  try {
+    // The syntax below pipes a simple query into the command.
+    // Depending on your shell, you might need to adjust this.
+    const output = execSync('echo "SELECT 1;" | npx prisma db execute --stdin', { stdio: 'pipe' });
+    console.log("Database connection successful:", output.toString().trim());
+    return true;
+  } catch (err) {
+    const errorOutput = err.stderr ? err.stderr.toString() : err.message;
+    console.error("Database connection test failed:", errorOutput);
+    return false;
+  }
+}
+
+// ----- Main Script Execution -----
+
+// Step 0: Test the Neon database connection
+if (!testDatabaseConnection()) {
+  console.error("Cannot connect to the Neon database using DATABASE_URL. Exiting.");
+  process.exit(1);
+}
+
+// Step 1: Ensure required schemas exist.
 console.log("Ensuring required schemas exist...");
 const schemaResult = runCommand("npx prisma db execute --file scripts/createSchemas.sql");
 if (!schemaResult.success) {
@@ -30,12 +54,12 @@ if (!schemaResult.success) {
   process.exit(1);
 }
 
-// Optional: Wait 5 seconds to ensure the database is fully initialized.
+// Step 2: Wait 5 seconds to ensure the database is fully initialized.
 console.log("Waiting 5 seconds to ensure database is fully initialized...");
 sleep(5);
 
-// Step 2: Run migrations using the appropriate command
-// In production on Vercel, we use 'migrate deploy' (which doesn't use a shadow DB)
+// Step 3: Run migrations using the appropriate command.
+// Use 'migrate deploy' in production (if process.env.VERCEL is set), else use 'migrate dev'
 let migrationCmd = process.env.VERCEL
   ? "npx prisma migrate deploy"
   : "npx prisma migrate dev --name auto_migration --skip-seed";
@@ -45,7 +69,7 @@ let migrationResult = runCommand(migrationCmd);
 if (!migrationResult.success) {
   if (migrationResult.message.includes("P3009")) {
     console.error("Detected failed migration (P3009).");
-    // Force-resolve the problematic migration so Prisma can continue
+    // Force-resolve the problematic migration.
     const resolveCmd = 'npx prisma migrate resolve --applied "20250304001229_crm_addresses"';
     console.log(`Attempting to mark migration as applied: ${resolveCmd}`);
     const resolveResult = runCommand(resolveCmd);
@@ -72,8 +96,9 @@ if (!migrationResult.success) {
 }
 console.log("Migrations applied successfully.");
 
-// Step 3: Ensure required tables exist
+// Step 4: Ensure required tables exist.
 
+// Ensure crm.addresses table.
 console.log("Ensuring crm.addresses table exists...");
 const ensureAddressesResult = runCommand("npx prisma db execute --file scripts/ensureAddresses.sql");
 if (!ensureAddressesResult.success) {
@@ -81,6 +106,7 @@ if (!ensureAddressesResult.success) {
   process.exit(1);
 }
 
+// Ensure crm.tz_data table.
 console.log("Ensuring crm.tz_data table exists...");
 const ensureTzResult = runCommand("npx prisma db execute --file scripts/ensureTzData.sql");
 if (!ensureTzResult.success) {
@@ -88,7 +114,7 @@ if (!ensureTzResult.success) {
   process.exit(1);
 }
 
-// Step 4: Execute updateTZ.sql to update timezone data
+// Step 5: Execute updateTZ.sql to update timezone data.
 console.log("Executing updateTZ.sql to update timezone data...");
 const updateTZResult = runCommand("npx prisma db execute --file prisma/sql/updateTZ.sql");
 if (!updateTZResult.success) {
@@ -96,7 +122,7 @@ if (!updateTZResult.success) {
   process.exit(1);
 }
 
-// Step 5: Generate Prisma client with SQL support
+// Step 6: Generate the Prisma client with SQL support.
 console.log("Generating Prisma client with SQL support...");
 const genResult = runCommand("npx prisma generate && npx prisma generate --sql");
 if (!genResult.success) {
