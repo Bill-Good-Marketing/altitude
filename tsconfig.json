@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
     "target": "esnext",
+    "types": ["jest", "node"],
     "lib": [
       "dom",
       "dom.iterable",
-      "esnext"
+      "esnext",
     ],
     "allowJs": true,
     "skipLibCheck": true,
