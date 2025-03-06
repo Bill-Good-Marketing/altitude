@@ -1,4 +1,7 @@
 'use client';
+
+declare var SpeechRecognition: any; // Declare global SpeechRecognition
+
 import React, {useEffect, useRef, useState} from "react";
 import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "~/components/ui/drawer";
 import {useChat} from "ai/react";
@@ -93,7 +96,7 @@ export function Pathfinder() {
     ])
     const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
     const [isListening, setIsListening] = useState(false)
-    const [recognition, setRecognition] = useState<SpeechRecognition | null>(null)
+    const [recognition, setRecognition] = useState<any | null>(null); // using any for SpeechRecognition
     const [speechToTextPreValue, setSpeechToTextPreValue] = useState('')
     const speechToTextPreValueRef = useStateRef(speechToTextPreValue)
     const [isFullscreen, setIsFullscreen] = useState(false)
