@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
@@ -11,10 +11,18 @@ import {
   AccordionTrigger,
 } from "~/components/ui/accordion"
 
-// interface KanbanViewProps {
-  // components: any[]
-  // triggers: any[]
-// }
+// Define local types for the provided objects
+type DroppableProvided = {
+  innerRef: (element: HTMLElement | null) => any,
+  droppableProps: any,
+  placeholder: React.ReactNode,
+}
+
+type DraggableProvided = {
+  innerRef: (element: HTMLElement | null) => any,
+  draggableProps: any,
+  dragHandleProps: any,
+}
 
 interface Objective {
   id: string
@@ -60,7 +68,7 @@ const KanbanView: React.FC = () => {
     setObjectives(updatedObjectives)
   }
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return
 
     const sourceObjectiveId = result.source.droppableId
@@ -148,7 +156,7 @@ const KanbanView: React.FC = () => {
                 </AccordionTrigger>
                 <AccordionContent>
                   <Droppable droppableId={objective.id}>
-                    {(provided) => (
+                    {(provided: DroppableProvided) => (
                       <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
@@ -156,7 +164,7 @@ const KanbanView: React.FC = () => {
                       >
                         {objective.tasks.map((task, index) => (
                           <Draggable key={task.id} draggableId={task.id} index={index}>
-                            {(provided) => (
+                            {(provided: DraggableProvided) => (
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
@@ -192,4 +200,3 @@ const KanbanView: React.FC = () => {
 }
 
 export default KanbanView
-
