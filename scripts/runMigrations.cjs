@@ -4,12 +4,11 @@ const { execSync } = require('child_process');
 function runCommand(cmd) {
   console.log(`Running: ${cmd}`);
   try {
-    // If you want real-time logs, use { stdio: 'inherit' } instead of 'pipe'
+    // For real-time logs, use { stdio: 'inherit' } instead of 'pipe'
     const output = execSync(cmd, { stdio: 'pipe' });
     console.log(`Command succeeded: ${cmd}`);
     return { success: true, output: output.toString() };
   } catch (err) {
-    // Some errors put messages in stderr; others are just the error message
     const errorOutput = err.stderr ? err.stderr.toString() : err.message;
     console.error(`Error running "${cmd}": ${errorOutput}`);
     return { success: false, message: errorOutput };
@@ -17,136 +16,126 @@ function runCommand(cmd) {
 }
 
 function sleep(seconds) {
+  console.log(`Sleeping ${seconds} second(s)...`);
   try {
-    console.log(`Sleeping ${seconds} second(s)...`);
     execSync(`sleep ${seconds}`);
-  } catch (err) {
-    // Some environments (Windows) may not have the `sleep` command installed
-    // You can write a Node-based sleep if needed.
+  } catch {
+    // On Windows/minimal shells, 'sleep' may not exist. Replace with setTimeout if needed.
   }
 }
 
 function testDatabaseConnection() {
-  console.log('Testing database connection...');
+  console.log("Testing database connection...");
   try {
-    // Attempt a simple SQL query using Prisma's db execute
     const output = execSync('echo "SELECT 1;" | npx prisma db execute --stdin', { stdio: 'pipe' });
-    console.log('Database connection successful:', output.toString().trim());
+    console.log("Database connection successful:", output.toString().trim());
     return true;
   } catch (err) {
     const errorOutput = err.stderr ? err.stderr.toString() : err.message;
-    console.error('Database connection test failed:', errorOutput);
+    console.error("Database connection test failed:", errorOutput);
     return false;
   }
 }
 
-// ----- Main Script Execution -----
+// ---------------- MAIN SCRIPT ---------------- //
 
-// Step A: Optionally clear the database first if CLEAR_DB is set
-if (process.env.CLEAR_DB === 'true') {
-  console.log('Clearing the database...');
-  const clearDbResult = runCommand('npx prisma db execute --file scripts/cleardb.sql');
-  if (!clearDbResult.success) {
-    console.error('Failed to clear the database. Exiting.');
-    process.exit(1);
-  }
-  console.log('Database cleared successfully.');
-}
-
-// Step 0: Test DB connection
+// 1) Test DB Connection
 if (!testDatabaseConnection()) {
-  console.error('Cannot connect to the database using DATABASE_URL. Exiting.');
+  console.error("Cannot connect to the database using DATABASE_URL. Exiting.");
   process.exit(1);
 }
 
-// Step 1: Ensure required schemas exist.
-console.log('Ensuring required schemas exist (createSchemas.sql)...');
-const schemaResult = runCommand('npx prisma db execute --file scripts/createSchemas.sql');
+// 2) Ensure required schemas exist (if you do createSchemas.sql)
+console.log("Ensuring required schemas exist (createSchemas.sql)...");
+let schemaResult = runCommand("npx prisma db execute --file scripts/createSchemas.sql");
 if (!schemaResult.success) {
-  console.error('Failed to create required schemas. Exiting.');
+  console.error("Failed to create required schemas. Exiting.");
   process.exit(1);
 }
 
-// Step 2: Sleep 5 seconds to ensure DB is fully initialized.
+// 3) Sleep a few seconds to let DB settle
 sleep(5);
 
-// Step 3: Run migrations (deploy on Vercel, dev locally).
+// 4) Run Prisma migrations (deploy on Vercel, dev locally)
 const migrationCmd = process.env.VERCEL
-  ? 'npx prisma migrate deploy'
-  : 'npx prisma migrate dev --name auto_migration --skip-seed';
+  ? "npx prisma migrate deploy"
+  : "npx prisma migrate dev --name auto_migration --skip-seed";
 
-console.log('Starting Prisma migrations...');
+console.log("Starting Prisma migrations...");
 let migrationResult = runCommand(migrationCmd);
 if (!migrationResult.success) {
-  // If we encountered P3009, we try to resolve specifically
-  if (migrationResult.message.includes('P3009')) {
-    console.error('Detected failed migration (P3009). Attempting to resolve...');
+  // If we detect the known P3009 error, handle it
+  if (migrationResult.message.includes("P3009")) {
+    console.error("Detected failed migration (P3009). Attempting to resolve...");
     const resolveCmd = 'npx prisma migrate resolve --applied "20250304001229_crm_addresses"';
     console.log(`Marking migration as applied: ${resolveCmd}`);
-    const resolveResult = runCommand(resolveCmd);
+    let resolveResult = runCommand(resolveCmd);
     if (!resolveResult.success) {
-      console.error('Failed to resolve the migration automatically. Exiting.');
+      console.error("Failed to resolve the migration automatically. Exiting.");
       process.exit(1);
     }
-
-    console.log('Migration marked as resolved. Re-running migrations...');
+    console.log("Migration marked as resolved. Re-running migrations...");
     migrationResult = runCommand(migrationCmd);
     if (!migrationResult.success) {
-      console.error('Migrations still failing after resolving. Exiting.');
+      console.error("Migrations still failing after resolving. Exiting.");
       process.exit(1);
     }
-    console.log('Migrations applied successfully after resolution. Now importing demo data...');
-    const importResult = runCommand('npx tsx ./import-playground.ts');
-    if (!importResult.success) {
-      console.error('Error importing demo data. Exiting.');
-      process.exit(1);
-    }
+    console.log("Migrations applied successfully (after resolution).");
   } else {
-    console.error('Migration deploy failed with an unexpected error. Exiting.');
+    console.error("Migration deploy failed with an unexpected error. Exiting.");
     process.exit(1);
   }
-} else {
-  console.log('Migrations applied successfully.');
+}
+console.log("Migrations applied successfully.");
+
+// 5) **Now** optionally clear existing data if CLEAR_DB=true
+if (process.env.CLEAR_DB === 'true') {
+  console.log("Clearing the database via cleardb.sql (DELETE statements)...");
+  let clearDbResult = runCommand("npx prisma db execute --file scripts/cleardb.sql");
+  if (!clearDbResult.success) {
+    console.error("Failed to clear the database (via DELETE). Exiting.");
+    process.exit(1);
+  }
+  console.log("Database data cleared successfully.");
 }
 
-// Step 4: Ensure required tables exist (example: addresses).
-console.log('Ensuring crm.addresses table exists (ensureAddresses.sql)...');
-const ensureAddressesResult = runCommand('npx prisma db execute --file scripts/ensureAddresses.sql');
+// 6) Additional ensures (addresses, tz_data)
+console.log("Ensuring crm.addresses table exists (ensureAddresses.sql)...");
+let ensureAddressesResult = runCommand("npx prisma db execute --file scripts/ensureAddresses.sql");
 if (!ensureAddressesResult.success) {
-  console.error('Failed to ensure crm.addresses table exists. Exiting.');
+  console.error("Failed to ensure crm.addresses table exists. Exiting.");
   process.exit(1);
 }
 
-// Step 4b: Ensure crm.tz_data table exists (ensureTzData.sql).
-console.log('Ensuring crm.tz_data table exists (ensureTzData.sql)...');
-const ensureTzResult = runCommand('npx prisma db execute --file scripts/ensureTzData.sql');
+console.log("Ensuring crm.tz_data table exists (ensureTzData.sql)...");
+let ensureTzResult = runCommand("npx prisma db execute --file scripts/ensureTzData.sql");
 if (!ensureTzResult.success) {
-  console.error('Failed to ensure crm.tz_data table exists. Exiting.');
+  console.error("Failed to ensure crm.tz_data table exists. Exiting.");
   process.exit(1);
 }
 
-// Step 5: Update TZ info if needed (updateTZ.sql).
-console.log('Executing updateTZ.sql to update timezone data...');
-const updateTZResult = runCommand('npx prisma db execute --file prisma/sql/updateTZ.sql');
+// 7) Update TZ if needed
+console.log("Executing updateTZ.sql to update timezone data...");
+let updateTZResult = runCommand("npx prisma db execute --file prisma/sql/updateTZ.sql");
 if (!updateTZResult.success) {
-  console.error('Failed to execute updateTZ.sql. Exiting.');
+  console.error("Failed to execute updateTZ.sql. Exiting.");
   process.exit(1);
 }
 
-// Step 6: Generate Prisma client(s)
-console.log('Generating Prisma client with SQL support...');
-const genResult = runCommand('npx prisma generate && npx prisma generate --sql');
+// 8) Generate Prisma client
+console.log("Generating Prisma client with SQL support...");
+let genResult = runCommand("npx prisma generate && npx prisma generate --sql");
 if (!genResult.success) {
-  console.error('Failed to generate Prisma client. Exiting.');
+  console.error("Failed to generate Prisma client. Exiting.");
   process.exit(1);
 }
-console.log('Prisma client generated successfully.');
+console.log("Prisma client generated successfully.");
 
-// Step 7: Always seed the database (import-playground.ts)
-console.log('Importing demo data with import-playground.ts...');
-const importResult = runCommand('npx tsx ./import-playground.ts');
+// 9) Finally, seed with import-playground.ts
+console.log("Importing demo data with import-playground.ts...");
+let importResult = runCommand("npx tsx ./import-playground.ts");
 if (!importResult.success) {
-  console.error('Error importing demo data. Exiting.');
+  console.error("Error importing demo data. Exiting.");
   process.exit(1);
 }
-console.log('Demo data imported successfully.');
+console.log("Demo data imported successfully.");
