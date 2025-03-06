@@ -1,17 +1,31 @@
 // scripts/runMigrations.cjs
 const { execSync } = require('child_process');
 
-function runCommand(cmd) {
+function runCommandWithOutput(cmd) {
   console.log(`Running: ${cmd}`);
   try {
-    // Using "inherit" streams output directly.
+    // Capture the output so we can inspect it.
+    const output = execSync(cmd, { stdio: 'pipe' });
+    console.log(`Command succeeded: ${cmd}`);
+    return { success: true, output: output.toString() };
+  } catch (error) {
+    const output = error.stderr ? error.stderr.toString() : error.message;
+    console.error(`Error running "${cmd}": ${output}`);
+    return { success: false, output };
+  }
+}
+
+function runCommand(cmd) {
+  // Simple wrapper that uses inherit for live output.
+  console.log(`Running: ${cmd}`);
+  try {
     execSync(cmd, { stdio: 'inherit' });
     console.log(`Command succeeded: ${cmd}`);
     return { success: true };
   } catch (error) {
-    const errorOutput = error.stderr ? error.stderr.toString() : error.message;
-    console.error(`Error running "${cmd}": ${errorOutput}`);
-    return { success: false, message: errorOutput };
+    const output = error.stderr ? error.stderr.toString() : error.message;
+    console.error(`Error running "${cmd}": ${output}`);
+    return { success: false, message: output };
   }
 }
 
@@ -36,15 +50,28 @@ if (!testDatabaseConnection()) {
 }
 
 // 2) Run Prisma migrations.
-// For this demo, we always force a dev migration with the name "create_tenets".
-// (The --skip-seed flag prevents Prisma's internal seeding.)
+// For this demo, we use "prisma migrate dev" with the migration name "create_tenets"
+// and force it to run non-interactively. If no changes are detected, we'll treat that as success.
 const migrationCmd = "npx prisma migrate dev --name create_tenets --skip-seed --force";
 console.log("Running Prisma migrations...");
-if (!runCommand(migrationCmd).success) {
-  console.error("Prisma migrations failed. Exiting.");
-  process.exit(1);
+const migrationResult = runCommandWithOutput(migrationCmd);
+if (!migrationResult.success) {
+  // Check if the error message indicates that no changes were detected.
+  if (
+    migrationResult.output.includes("No changes detected") ||
+    migrationResult.output.includes("Empty migration")
+  ) {
+    console.log("No migration changes detected; proceeding without error.");
+  } else if (migrationResult.output.includes("P3009")) {
+    console.error("Detected migration error P3009. Please resolve migration conflicts.");
+    process.exit(1);
+  } else {
+    console.error("Prisma migrations failed with an unexpected error. Exiting.");
+    process.exit(1);
+  }
+} else {
+  console.log("Prisma migrations applied successfully.");
 }
-console.log("Prisma migrations applied successfully.");
 
 // 3) Generate the Prisma client.
 console.log("Generating Prisma client with SQL support...");
