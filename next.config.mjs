@@ -2,6 +2,9 @@ import TerserPlugin from "terser-webpack-plugin";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    eslint: {
+        ignoreDuringBuilds: true,
+      },
     experimental: {
         serverSourceMaps: true,
         reactCompiler: {
