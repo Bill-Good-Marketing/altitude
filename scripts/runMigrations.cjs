@@ -6,35 +6,27 @@ function runCommand(cmd) {
   try {
     const output = execSync(cmd, { stdio: 'pipe' });
     console.log(`Command succeeded: ${cmd}`);
-    return output.toString();
+    return { success: true, output: output.toString() };
   } catch (err) {
     const errorOutput = err.stderr ? err.stderr.toString() : err.message;
     console.error(`Error running "${cmd}": ${errorOutput}`);
-    return { error: true, message: errorOutput };
+    return { success: false, message: errorOutput };
   }
 }
 
 // Step 1: Ensure required schemas exist
 console.log("Ensuring required schemas exist...");
 const schemaResult = runCommand("npx prisma db execute --file scripts/createSchemas.sql");
-if (schemaResult.error) {
+if (!schemaResult.success) {
   console.error("Failed to create required schemas. Exiting.");
   process.exit(1);
 }
 
-// Step 2: Generate Prisma client (including SQL client)
-console.log("Generating Prisma client with SQL support...");
-const genResult = runCommand("npx prisma generate && npx prisma generate --sql");
-if (genResult.error) {
-  console.error("Failed to generate Prisma client. Exiting.");
-  process.exit(1);
-}
-
-// Step 3: Attempt to deploy migrations
+// Step 2: Deploy migrations (this should create all tables, including crm.addresses)
 console.log("Starting Prisma migrations...");
 let migrationResult = runCommand("npx prisma migrate deploy");
 
-if (migrationResult.error) {
+if (!migrationResult.success) {
   const errorOutput = migrationResult.message;
   if (errorOutput.includes("P3009")) {
     console.error("Detected failed migration (P3009).");
@@ -42,20 +34,20 @@ if (migrationResult.error) {
     const resolveCmd = 'npx prisma migrate resolve --applied "20250304001229_crm_addresses"';
     console.log(`Attempting to mark migration as applied: ${resolveCmd}`);
     const resolveResult = runCommand(resolveCmd);
-    if (resolveResult.error) {
+    if (!resolveResult.success) {
       console.error("Failed to resolve the migration automatically. Exiting.");
       process.exit(1);
     }
     console.log("Migration marked as resolved. Re-running migrations...");
     migrationResult = runCommand("npx prisma migrate deploy");
-    if (migrationResult.error) {
+    if (!migrationResult.success) {
       console.error("Migrations still failing after resolving. Exiting.");
       process.exit(1);
     }
-    // Optionally, import demo data.
+    // Optionally, import demo data if needed.
     console.log("Importing demo data...");
     const importResult = runCommand("npx tsx ./import-playground.ts");
-    if (importResult.error) {
+    if (!importResult.success) {
       console.error("Error importing demo data. Exiting.");
       process.exit(1);
     }
@@ -66,3 +58,13 @@ if (migrationResult.error) {
 }
 
 console.log("Migrations applied successfully.");
+
+// Step 3: Generate Prisma client with SQL support (after migrations)
+console.log("Generating Prisma client with SQL support...");
+const genResult = runCommand("npx prisma generate && npx prisma generate --sql");
+if (!genResult.success) {
+  console.error("Failed to generate Prisma client. Exiting.");
+  process.exit(1);
+}
+
+console.log("Prisma client generated successfully.");
