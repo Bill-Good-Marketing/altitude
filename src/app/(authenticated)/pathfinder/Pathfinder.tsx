@@ -1,6 +1,11 @@
 'use client';
 
-declare var SpeechRecognition: any; // Declare global SpeechRecognition
+declare global {
+    interface Window {
+      SpeechRecognition: any;
+      webkitSpeechRecognition: any;
+    }
+  }
 
 import React, {useEffect, useRef, useState} from "react";
 import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "~/components/ui/drawer";
@@ -117,7 +122,7 @@ export function Pathfinder() {
             sr.continuous = true;
             sr.interimResults = true;
             sr.lang = 'en-US';
-            sr.onresult = (event) => {
+            sr.onresult = (event: SpeechRecognitionEvent) => {
                 let interim_transcript = '';
 
                 for (const item of event.results) {
