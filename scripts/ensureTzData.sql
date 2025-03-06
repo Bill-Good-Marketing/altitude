@@ -1,6 +1,3 @@
-SET search_path TO crm;
-
--- Instead of dropping/creating the table, just clear it (if that's desired).
 DELETE FROM "crm"."tz_data";
 
 -- If you want to re-insert or repopulate data, you can add INSERT statements here.

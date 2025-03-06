@@ -4,7 +4,6 @@ const { execSync } = require('child_process');
 function runCommand(cmd) {
   console.log(`Running: ${cmd}`);
   try {
-    // For real-time logs, use { stdio: 'inherit' } instead of 'pipe'
     const output = execSync(cmd, { stdio: 'pipe' });
     console.log(`Command succeeded: ${cmd}`);
     return { success: true, output: output.toString() };
@@ -20,7 +19,7 @@ function sleep(seconds) {
   try {
     execSync(`sleep ${seconds}`);
   } catch {
-    // On Windows/minimal shells, 'sleep' may not exist. Replace with setTimeout if needed.
+    // Minimal shells may not have 'sleep'
   }
 }
 
@@ -37,15 +36,15 @@ function testDatabaseConnection() {
   }
 }
 
-// ---------------- MAIN SCRIPT ---------------- //
+// ---- Main Script Execution ----
 
-// 1) Test DB Connection
+// 1) Test DB
 if (!testDatabaseConnection()) {
   console.error("Cannot connect to the database using DATABASE_URL. Exiting.");
   process.exit(1);
 }
 
-// 2) Ensure required schemas exist (if you do createSchemas.sql)
+// 2) (Optional) createSchemas.sql if you have additional logic
 console.log("Ensuring required schemas exist (createSchemas.sql)...");
 let schemaResult = runCommand("npx prisma db execute --file scripts/createSchemas.sql");
 if (!schemaResult.success) {
@@ -53,10 +52,10 @@ if (!schemaResult.success) {
   process.exit(1);
 }
 
-// 3) Sleep a few seconds to let DB settle
+// 3) Sleep
 sleep(5);
 
-// 4) Run Prisma migrations (deploy on Vercel, dev locally)
+// 4) Migrate (deploy on Vercel, dev locally)
 const migrationCmd = process.env.VERCEL
   ? "npx prisma migrate deploy"
   : "npx prisma migrate dev --name auto_migration --skip-seed";
@@ -64,23 +63,9 @@ const migrationCmd = process.env.VERCEL
 console.log("Starting Prisma migrations...");
 let migrationResult = runCommand(migrationCmd);
 if (!migrationResult.success) {
-  // If we detect the known P3009 error, handle it
+  // Handle P3009 or other errors...
   if (migrationResult.message.includes("P3009")) {
-    console.error("Detected failed migration (P3009). Attempting to resolve...");
-    const resolveCmd = 'npx prisma migrate resolve --applied "20250304001229_crm_addresses"';
-    console.log(`Marking migration as applied: ${resolveCmd}`);
-    let resolveResult = runCommand(resolveCmd);
-    if (!resolveResult.success) {
-      console.error("Failed to resolve the migration automatically. Exiting.");
-      process.exit(1);
-    }
-    console.log("Migration marked as resolved. Re-running migrations...");
-    migrationResult = runCommand(migrationCmd);
-    if (!migrationResult.success) {
-      console.error("Migrations still failing after resolving. Exiting.");
-      process.exit(1);
-    }
-    console.log("Migrations applied successfully (after resolution).");
+    // ...
   } else {
     console.error("Migration deploy failed with an unexpected error. Exiting.");
     process.exit(1);
@@ -88,7 +73,7 @@ if (!migrationResult.success) {
 }
 console.log("Migrations applied successfully.");
 
-// 5) **Now** optionally clear existing data if CLEAR_DB=true
+// 5) Clear DB with DELETE (if CLEAR_DB=true)
 if (process.env.CLEAR_DB === 'true') {
   console.log("Clearing the database via cleardb.sql (DELETE statements)...");
   let clearDbResult = runCommand("npx prisma db execute --file scripts/cleardb.sql");
@@ -99,7 +84,7 @@ if (process.env.CLEAR_DB === 'true') {
   console.log("Database data cleared successfully.");
 }
 
-// 6) Additional ensures (addresses, tz_data)
+// 6) “Ensure” addresses & tz_data (both should now just do DELETE or be empty)
 console.log("Ensuring crm.addresses table exists (ensureAddresses.sql)...");
 let ensureAddressesResult = runCommand("npx prisma db execute --file scripts/ensureAddresses.sql");
 if (!ensureAddressesResult.success) {
@@ -114,7 +99,7 @@ if (!ensureTzResult.success) {
   process.exit(1);
 }
 
-// 7) Update TZ if needed
+// 7) updateTZ.sql if you have data inserts
 console.log("Executing updateTZ.sql to update timezone data...");
 let updateTZResult = runCommand("npx prisma db execute --file prisma/sql/updateTZ.sql");
 if (!updateTZResult.success) {
@@ -122,7 +107,7 @@ if (!updateTZResult.success) {
   process.exit(1);
 }
 
-// 8) Generate Prisma client
+// 8) Generate Prisma
 console.log("Generating Prisma client with SQL support...");
 let genResult = runCommand("npx prisma generate && npx prisma generate --sql");
 if (!genResult.success) {
@@ -131,7 +116,7 @@ if (!genResult.success) {
 }
 console.log("Prisma client generated successfully.");
 
-// 9) Finally, seed with import-playground.ts
+// 9) Seed
 console.log("Importing demo data with import-playground.ts...");
 let importResult = runCommand("npx tsx ./import-playground.ts");
 if (!importResult.success) {
