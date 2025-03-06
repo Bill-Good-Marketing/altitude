@@ -43,7 +43,7 @@ function testDatabaseConnection() {
 // ----- Main Script Execution -----
 
 // Step A: Optionally clear the database first if CLEAR_DB is set
-if (process.env.CLEAR_DB === 'true') {
+if (process.env.CLEAR_DB === 'false') {
   console.log('Clearing the database...');
   const clearDbResult = runCommand('npx prisma db execute --file scripts/cleardb.sql');
   if (!clearDbResult.success) {

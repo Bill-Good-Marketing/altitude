@@ -1,27 +1,16 @@
 /* BEGIN GENERATED IMPORTS: DO NOT MODIFY OR REMOVE THIS COMMENT */
-import { Model, models } from '~/db/sql/SQLBase';
+import {Model, models} from '~/db/sql/SQLBase';
 import ModelSet from '~/util/db/ModelSet';
-import {
-  ReadOptions,
-  ReadUniqueOptions,
-  SearchResult,
-  ReadResult
-} from '~/db/sql/types/model';
-import { ReadWhere } from '~/db/sql/types/where';
-import { ReadAttributes } from '~/db/sql/types/select';
-import { ModelKeys } from '~/db/sql/keys';
-import {
-  required,
-  persisted,
-  Default,
-  wrap,
-  calculated,
-  on
-} from '~/db/sql/decorators';
+import {ReadOptions, ReadUniqueOptions, SearchResult, ReadResult} from '~/db/sql/types/model';
+import {ReadWhere} from '~/db/sql/types/where';
+import {ReadAttributes} from '~/db/sql/types/select';
+import {ModelKeys} from '~/db/sql/keys';
+import {required, persisted, Default, wrap, calculated, on} from '~/db/sql/decorators';
 import ai from '~/ai/AI';
-import { AddressType } from '~/common/enum/enumerations';
-import { Contact } from '~/db/sql/models/Contact';
-import { Tenet } from '~/db/sql/models/Tenet';
+import {AddressType} from '~/common/enum/enumerations';
+import {Contact} from '~/db/sql/models/Contact';
+import {Tenet} from '~/db/sql/models/Tenet';
+import {LogLevel} from '~/common/enum/serverenums';
 /* END GENERATED IMPORTS: DO NOT MODIFY OR REMOVE THIS COMMENT */
 
 import { quickTrace } from '~/util/tracing';
@@ -34,21 +23,21 @@ import { BatchResult } from '~/db/sql/types/hooks';
 
 /* BEGIN GENERATED TYPES: DO NOT MODIFY OR REMOVE THIS COMMENT */
 type AddressDefaultData = {
-  street?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  country?: string;
-  type?: AddressType;
-  primary?: boolean;
-  contactId?: Buffer;
-  contact?: Contact;
-  tenetId?: Buffer;
-  tenet?: Tenet;
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
-  timezone?: string | null;
-};
+	street?: string;
+	city?: string;
+	state?: string;
+	zip?: string;
+	country?: string;
+	type?: AddressType;
+	primary?: boolean;
+	contactId?: Buffer;
+	contact?: Contact;
+	tenetId?: Buffer;
+	tenet?: Tenet;
+	createdAt?: Date | null;
+	updatedAt?: Date | null;
+	timezone?: string | null
+}
 /* END GENERATED TYPES: DO NOT MODIFY OR REMOVE THIS COMMENT */
 
 /* Automatically generated type for `data` field in constructor. Can be modified */
@@ -57,59 +46,41 @@ type AddressData = AddressDefaultData & {};
 
 export class Address extends Model<Address> {
   /* BEGIN GENERATED PROPERTIES: DO NOT MODIFY OR REMOVE THIS COMMENT */
-  @ai.property('string', null, false, false)
-  @required
-  declare public street?: string;
-
-  @ai.property('string', null, false, false)
-  @required
-  declare public city?: string;
-
-  @ai.property('string', null, false, false)
-  @required
-  declare public state?: string;
-
-  @ai.property('string', null, false, false)
-  @required
-  declare public zip?: string;
-
-  @ai.property('string', null, false, false)
-  @required
-  declare public country?: string;
-
-  @ai.property('AddressType', null, false, false)
-  @required
-  declare public type?: AddressType;
-
-  @ai.property('boolean', null, false, false)
-  @persisted
-  @Default(false)
-  declare public primary?: boolean;
-
-  @ai.property('id', null, false, false)
-  @required
-  declare public contactId?: Buffer;
-
-  @ai.property('contact', null, false, false)
-  @wrap('contact', 'addresses', 'contactId', true, false)
-  declare public contact?: Contact;
-
-  @required
-  declare public tenetId?: Buffer;
-
-  @wrap('tenet', 'addresses', 'tenetId', true, false)
-  declare public tenet?: Tenet;
-
-  @persisted
-  declare public createdAt?: Date;
-
-  @persisted
-  declare public updatedAt?: Date;
-
-  @ai.property('string', null, false, true)
-  @persisted
-  declare public timezone?: string | null;
-  /* END GENERATED PROPERTIES: DO NOT MODIFY OR REMOVE THIS COMMENT */
+    @ai.property('string', null, false, false)
+	@required declare public street?: string;
+	
+	@ai.property('string', null, false, false)
+	@required declare public city?: string;
+	
+	@ai.property('string', null, false, false)
+	@required declare public state?: string;
+	
+	@ai.property('string', null, false, false)
+	@required declare public zip?: string;
+	
+	@ai.property('string', null, false, false)
+	@required declare public country?: string;
+	
+	@ai.property('AddressType', null, false, false)
+	@required declare public type?: AddressType;
+	
+	@ai.property('boolean', null, false, false)
+	@persisted @Default(false) declare public primary?: boolean;
+	
+	@ai.property('id', null, false, false)
+	@required declare public contactId?: Buffer;
+	
+	@ai.property('contact', null, false, false)
+	@wrap('contact', 'addresses', 'contactId', true, false) declare public contact?: Contact;
+	
+	@required declare public tenetId?: Buffer;
+	@wrap('tenet', 'addresses', 'tenetId', true, false) declare public tenet?: Tenet;
+	@persisted declare public createdAt?: Date;
+	@persisted declare public updatedAt?: Date;
+	
+	@ai.property('string', null, false, true)
+	@persisted declare public timezone?: string | null;
+    /* END GENERATED PROPERTIES: DO NOT MODIFY OR REMOVE THIS COMMENT */
 
   declare private _tzUpdated: boolean;
 
