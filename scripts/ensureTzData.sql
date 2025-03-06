@@ -1,5 +1,4 @@
 SET search_path TO crm;
-DROP TABLE IF EXISTS tz_data CASCADE;
 
 CREATE TABLE tz_data (
   id SERIAL PRIMARY KEY,

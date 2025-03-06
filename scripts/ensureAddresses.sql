@@ -8,9 +8,6 @@ EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
--- Drop the addresses table if it exists (optional, if you want to ensure a fresh table)
-DROP TABLE IF EXISTS addresses CASCADE;
-
 -- Create the addresses table with the expected columns.
 CREATE TABLE addresses (
   id BYTEA PRIMARY KEY,
