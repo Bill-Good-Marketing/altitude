@@ -1,4 +1,6 @@
-UPDATE "crm"."addresses"
-SET "timezone" = (
-    SELECT "tz" FROM "crm"."tz_data" WHERE "countryCode" = $1 AND "provinceName" = $2 AND "name" = $3
-);
+UPDATE "crm"."addresses" AS a
+SET "timezone" = tz."tz"
+FROM "crm"."tz_data" AS tz
+WHERE tz."countryCode" = a."country"
+  AND tz."provinceName" = a."state"
+  AND tz."name" = a."city";

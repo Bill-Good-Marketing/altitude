@@ -1,4 +1,3 @@
-// scripts/runMigrations.cjs
 const { execSync } = require('child_process');
 
 function runCommand(cmd) {
@@ -25,7 +24,6 @@ function sleep(seconds) {
 function testDatabaseConnection() {
   console.log("Testing database connection...");
   try {
-    // Test with a simple query
     const output = execSync('echo "SELECT 1;" | npx prisma db execute --stdin', { stdio: 'pipe' });
     console.log("Database connection successful:", output.toString().trim());
     return true;
@@ -36,9 +34,18 @@ function testDatabaseConnection() {
   }
 }
 
-// ----- Main Script Execution -----
+// Optional: clear the database if CLEAR_DB is set (useful in staging)
+// Uncomment below if you want to drop schemas before applying migrations.
+/*
+console.log("Clearing the database...");
+const clearDbResult = runCommand("npx prisma db execute --file scripts/cleardb.sql");
+if (!clearDbResult.success) {
+  console.error("Failed to clear the database. Exiting.");
+  process.exit(1);
+}
+*/
 
-// Step 0: Test the Neon database connection first.
+// Step 0: Test Neon database connection.
 if (!testDatabaseConnection()) {
   console.error("Cannot connect to the Neon database using DATABASE_URL. Exiting.");
   process.exit(1);
@@ -52,11 +59,11 @@ if (!schemaResult.success) {
   process.exit(1);
 }
 
-// Step 2: Wait 5 seconds to ensure the database is fully initialized.
+// Step 2: Wait 5 seconds to ensure database initialization.
 console.log("Waiting 5 seconds to ensure database is fully initialized...");
 sleep(5);
 
-// Step 3: Run migrations using the appropriate command.
+// Step 3: Run migrations.
 let migrationCmd = process.env.VERCEL
   ? "npx prisma migrate deploy"
   : "npx prisma migrate dev --name auto_migration --skip-seed";
@@ -93,8 +100,6 @@ if (!migrationResult.success) {
 console.log("Migrations applied successfully.");
 
 // Step 4: Ensure critical tables exist.
-
-// Ensure crm.addresses table.
 console.log("Ensuring crm.addresses table exists...");
 const ensureAddressesResult = runCommand("npx prisma db execute --file scripts/ensureAddresses.sql");
 if (!ensureAddressesResult.success) {
@@ -102,7 +107,6 @@ if (!ensureAddressesResult.success) {
   process.exit(1);
 }
 
-// Ensure crm.tz_data table (drop + recreate).
 console.log("Ensuring crm.tz_data table exists...");
 const ensureTzResult = runCommand("npx prisma db execute --file scripts/ensureTzData.sql");
 if (!ensureTzResult.success) {
@@ -118,7 +122,7 @@ if (!updateTZResult.success) {
   process.exit(1);
 }
 
-// Step 6: Generate Prisma client with SQL support.
+// Step 6: Generate the Prisma client with SQL support.
 console.log("Generating Prisma client with SQL support...");
 const genResult = runCommand("npx prisma generate && npx prisma generate --sql");
 if (!genResult.success) {
