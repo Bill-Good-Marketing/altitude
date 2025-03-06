@@ -34,18 +34,18 @@ function testDatabaseConnection() {
   }
 }
 
-// Optional: clear the database if CLEAR_DB is set (useful in staging)
-// Uncomment below if you want to drop schemas before applying migrations.
-/*
-console.log("Clearing the database...");
-const clearDbResult = runCommand("npx prisma db execute --file scripts/cleardb.sql");
-if (!clearDbResult.success) {
-  console.error("Failed to clear the database. Exiting.");
-  process.exit(1);
-}
-*/
+// ----- Main Script Execution -----
 
-// Step 0: Test Neon database connection.
+// Optional: Clear the database if CLEAR_DB is set (use with caution)
+// Uncomment if needed:
+// console.log("Clearing the database...");
+// const clearDbResult = runCommand("npx prisma db execute --file scripts/cleardb.sql");
+// if (!clearDbResult.success) {
+//   console.error("Failed to clear the database. Exiting.");
+//   process.exit(1);
+// }
+
+// Step 0: Test the Neon database connection.
 if (!testDatabaseConnection()) {
   console.error("Cannot connect to the Neon database using DATABASE_URL. Exiting.");
   process.exit(1);
@@ -59,7 +59,7 @@ if (!schemaResult.success) {
   process.exit(1);
 }
 
-// Step 2: Wait 5 seconds to ensure database initialization.
+// Step 2: Wait 5 seconds to ensure database is fully initialized.
 console.log("Waiting 5 seconds to ensure database is fully initialized...");
 sleep(5);
 
@@ -99,7 +99,8 @@ if (!migrationResult.success) {
 }
 console.log("Migrations applied successfully.");
 
-// Step 4: Ensure critical tables exist.
+// Step 4: Ensure required tables exist.
+// Ensure crm.addresses table.
 console.log("Ensuring crm.addresses table exists...");
 const ensureAddressesResult = runCommand("npx prisma db execute --file scripts/ensureAddresses.sql");
 if (!ensureAddressesResult.success) {
@@ -107,6 +108,7 @@ if (!ensureAddressesResult.success) {
   process.exit(1);
 }
 
+// Ensure crm.tz_data table (drop & recreate).
 console.log("Ensuring crm.tz_data table exists...");
 const ensureTzResult = runCommand("npx prisma db execute --file scripts/ensureTzData.sql");
 if (!ensureTzResult.success) {
