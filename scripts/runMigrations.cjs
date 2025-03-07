@@ -44,7 +44,7 @@ if (!testDatabaseConnection()) {
 
 // Step 1: Ensure required schemas exist.
 console.log("Ensuring required schemas exist...");
-const schemaResult = runCommand("npx prisma db execute --file ../srccreateSchemas.sql");
+const schemaResult = runCommand("npx prisma db execute --file ../createSchemas.sql");
 if (!schemaResult.success) {
   console.error("Failed to create required schemas. Exiting.");
   process.exit(1);
@@ -100,7 +100,7 @@ if (!migrationResult.success) {
 // Step 4: Ensure required tables exist.
 // Ensure crm.addresses table.
 console.log("Ensuring crm.addresses table exists...");
-const ensureAddressesResult = runCommand("npx prisma db execute --file ../srcensureAddresses.sql");
+const ensureAddressesResult = runCommand("npx prisma db execute --file ../ensureAddresses.sql");
 if (!ensureAddressesResult.success) {
   console.error("Failed to ensure crm.addresses table exists. Exiting.");
   process.exit(1);
@@ -108,7 +108,7 @@ if (!ensureAddressesResult.success) {
 
 // Ensure crm.tz_data table (drop & recreate).
 console.log("Ensuring crm.tz_data table exists...");
-const ensureTzResult = runCommand("npx prisma db execute --file ../srcensureTzData.sql");
+const ensureTzResult = runCommand("npx prisma db execute --file ../ensureTzData.sql");
 if (!ensureTzResult.success) {
   console.error("Failed to ensure crm.tz_data table exists. Exiting.");
   process.exit(1);
