@@ -1,4 +1,5 @@
 // First create a tenet
+import 'dotenv/config';
 import {
     AccessGroup,
     ActivityPriority,
