@@ -78,7 +78,7 @@ if (!migrationResult.success) {
       process.exit(1);
     }
     console.log("Importing demo data using seed.ts...");
-    const seedResult = runCommand("npx tsx seed.ts");
+    const seedResult = runCommand("npx tsx scripts/seed.ts");
     if (!seedResult.success) {
       console.error("Error importing demo data. Exiting.");
       process.exit(1);
@@ -90,7 +90,7 @@ if (!migrationResult.success) {
 } else {
   console.log("Migrations applied successfully.");
   console.log("Seeding demo data using seed.ts...");
-  const seedResult = runCommand("npx tsx seed.ts");
+  const seedResult = runCommand("npx tsx scripts/seed.ts");
   if (!seedResult.success) {
     console.error("Error seeding demo data. Exiting.");
     process.exit(1);
