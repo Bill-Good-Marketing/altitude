@@ -44,7 +44,7 @@ if (!testDatabaseConnection()) {
 
 // Step 1: Ensure required schemas exist.
 console.log("Ensuring required schemas exist...");
-const schemaResult = runCommand("npx prisma db execute --file scripts/createSchemas.sql");
+const schemaResult = runCommand("npx prisma db execute --file ../srccreateSchemas.sql");
 if (!schemaResult.success) {
   console.error("Failed to create required schemas. Exiting.");
   process.exit(1);
@@ -78,7 +78,7 @@ if (!migrationResult.success) {
       process.exit(1);
     }
     console.log("Importing demo data using seed.ts...");
-    const seedResult = runCommand("npx tsx scripts/seed.ts");
+    const seedResult = runCommand("npx tsx seed.ts");
     if (!seedResult.success) {
       console.error("Error importing demo data. Exiting.");
       process.exit(1);
@@ -90,7 +90,7 @@ if (!migrationResult.success) {
 } else {
   console.log("Migrations applied successfully.");
   console.log("Seeding demo data using seed.ts...");
-  const seedResult = runCommand("npx tsx scripts/seed.ts");
+  const seedResult = runCommand("npx tsx seed.ts");
   if (!seedResult.success) {
     console.error("Error seeding demo data. Exiting.");
     process.exit(1);
@@ -100,7 +100,7 @@ if (!migrationResult.success) {
 // Step 4: Ensure required tables exist.
 // Ensure crm.addresses table.
 console.log("Ensuring crm.addresses table exists...");
-const ensureAddressesResult = runCommand("npx prisma db execute --file scripts/ensureAddresses.sql");
+const ensureAddressesResult = runCommand("npx prisma db execute --file ../srcensureAddresses.sql");
 if (!ensureAddressesResult.success) {
   console.error("Failed to ensure crm.addresses table exists. Exiting.");
   process.exit(1);
@@ -108,7 +108,7 @@ if (!ensureAddressesResult.success) {
 
 // Ensure crm.tz_data table (drop & recreate).
 console.log("Ensuring crm.tz_data table exists...");
-const ensureTzResult = runCommand("npx prisma db execute --file scripts/ensureTzData.sql");
+const ensureTzResult = runCommand("npx prisma db execute --file ../srcensureTzData.sql");
 if (!ensureTzResult.success) {
   console.error("Failed to ensure crm.tz_data table exists. Exiting.");
   process.exit(1);

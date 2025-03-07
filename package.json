@@ -11,9 +11,9 @@
     "migrate:deploy": "npx prisma migrate deploy",
     "migrate": "npx prisma migrate dev --name auto_migration --skip-seed",
     "create-schemas": "docker-compose exec alt-vercel_postgres_1 psql -U neondb_owner -d neondb -f /app/scripts/createSchemas.sql",
-    "import:demo": "npx tsx scripts/seed.ts",
+    "import:demo": "npx tsx seed.ts",
     "watch:prisma": "wait-on tcp:localhost:5432 -d 5000 && npx prisma generate && npx prisma generate --sql && npm run create-schemas && npm run migrate && nodemon --watch prisma/schema.prisma --exec 'npx prisma generate && npx prisma generate --sql'",
-    "seed": "npx tsx scripts/seed.ts",
+    "seed": "npx tsx seed.ts",
     "dev": "concurrently -n SETUP,DB,NEXT,PRISMA \"npm run setup\" \"npm run db\" \"npm run next-dev\" \"npm run create-schemas && npm run migrate && npm run seed && nodemon --watch prisma/schema.prisma --exec 'npx prisma generate && npx prisma generate --sql'\"",
     "build": "npx prisma generate && npx prisma generate --sql && npx next build",
     "start": "npx next start",
@@ -21,7 +21,7 @@
     "postinstall": "npx prisma generate && node scripts/runMigrations.cjs"
   },
   "prisma": {
-    "seed": "node scripts/seed.ts"
+    "seed": "node seed.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.7",
