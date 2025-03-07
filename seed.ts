@@ -945,7 +945,7 @@ await PerformInTransaction(async () => {
 
         await noteObj.commit();
     }
-}, 180000)
+}, 300000)
 
 console.log('Success!')
 process.exit(0);
