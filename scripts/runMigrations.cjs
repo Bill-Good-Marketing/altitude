@@ -36,15 +36,6 @@ function testDatabaseConnection() {
 
 // ----- Main Script Execution -----
 
-// Optional: Clear the database if CLEAR_DB is set (use with caution)
-// Uncomment if needed:
-// console.log("Clearing the database...");
-// const clearDbResult = runCommand("npx prisma db execute --file scripts/cleardb.sql");
-// if (!clearDbResult.success) {
-//   console.error("Failed to clear the database. Exiting.");
-//   process.exit(1);
-// }
-
 // Step 0: Test the Neon database connection.
 if (!testDatabaseConnection()) {
   console.error("Cannot connect to the Neon database using DATABASE_URL. Exiting.");
@@ -86,9 +77,9 @@ if (!migrationResult.success) {
       console.error("Migrations still failing after resolving. Exiting.");
       process.exit(1);
     }
-    console.log("Importing demo data...");
-    const importResult = runCommand("npx tsx ./import-playground.ts");
-    if (!importResult.success) {
+    console.log("Importing demo data using seed.ts...");
+    const seedResult = runCommand("npx tsx seed.ts");
+    if (!seedResult.success) {
       console.error("Error importing demo data. Exiting.");
       process.exit(1);
     }
@@ -96,8 +87,15 @@ if (!migrationResult.success) {
     console.error("Migration deploy failed with an unexpected error. Exiting.");
     process.exit(1);
   }
+} else {
+  console.log("Migrations applied successfully.");
+  console.log("Seeding demo data using seed.ts...");
+  const seedResult = runCommand("npx tsx seed.ts");
+  if (!seedResult.success) {
+    console.error("Error seeding demo data. Exiting.");
+    process.exit(1);
+  }
 }
-console.log("Migrations applied successfully.");
 
 // Step 4: Ensure required tables exist.
 // Ensure crm.addresses table.
