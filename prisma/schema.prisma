@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["relationJoins", "typedSql", "multiSchema"]
+  previewFeatures = ["multiSchema", "relationJoins", "typedSql"]
 }
 
 datasource db {
@@ -9,94 +9,71 @@ datasource db {
   schemas  = ["crm", "tests"]
 }
 
-// Users are a part of a tenet. One tenet is one CRM instance.
 model Tenet {
   id                             Bytes                            @id
   name                           String                           @unique
   createdAt                      DateTime                         @default(now())
   updatedAt                      DateTime                         @updatedAt
-  users                          User[]
-  logs                           Log[]
-  contacts                       Contact[]
   activities                     Activity[]
-  addresses                      Address[]
+  activitySteps                  ActivityStep[]
+  activityTemplateStepAssignment ActivityTemplateStepAssignment[]
+  activityTemplateSteps          ActivityTemplateStep[]
+  activityTemplates              ActivityTemplate[]
+  activityWaypointTemplates      ActivityWaypointTemplate[]
+  activityWaypoints              ActivityWaypoint[]
+  attachments                    Attachment[]
+  auditEvents                    AuditEvent[]
   contactEmails                  ContactEmail[]
   contactPhones                  ContactPhone[]
-  importantDates                 ImportantDate[]
-  attachments                    Attachment[]
-  notes                          Note[]
-  auditEvents                    AuditEvent[]
   contactTimelineEvents          ContactTimelineEvent[]
-  activitySteps                  ActivityStep[]
-  activityWaypoints              ActivityWaypoint[]
-  templateAssignments            TemplateAssignment[]
-  activityWaypointTemplates      ActivityWaypointTemplate[]
-  activityTemplates              ActivityTemplate[]
-  activityTemplateSteps          ActivityTemplateStep[]
+  contacts                       Contact[]
+  importantDates                 ImportantDate[]
+  logs                           Log[]
+  notes                          Note[]
   opportunities                  Opportunity[]
   products                       ProductType[]
-  activityTemplateStepAssignment ActivityTemplateStepAssignment[]
+  templateAssignments            TemplateAssignment[]
+  users                          User[]
 
   @@index([name])
   @@map("tenets")
   @@schema("crm")
 }
 
-// Users are not AI-searchable, but the schema is included so it can properly use user relationships in other models (like activities)
 model User {
   /// @@ai-enabled
-  id        Bytes       @id
+  id                      Bytes                            @id
   /// @ai-field
-  email     String      @unique
+  email                   String                           @unique
   /// @ai-field
-  firstName String
+  firstName               String
   /// @ai-field
-  lastName  String
+  lastName                String
   /// @computed('fullName')
   /// @ai-field
-  fullName  String
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  password  String // Hashed then encrypted
-  enabled   Boolean     @default(true)
-  type      AccessGroup @default(CLIENT)
-  tokens    Token[]
-  tenet     Tenet?      @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId   Bytes? // Staff do not have a tenet. To be a client, you must be in a tenet.
-
-  // System-seeded users are integral for the system to function. They have special validation rules.
-  system Boolean @default(false)
-
-  /// @jointable(Activity, activityRelation)
-  /// @ai-field
-  activities ActivityUserJoin[]
-  /// @ai-field(notes this user authored)
-  notes      Note[]
-
-  /// @jointable(ActivityWaypoint, waypointRelation)
-  /// @ai-field(Waypoints assigned to this user)
-  waypoints UserWaypointJoin[]
-
-  /// @ai-field(Events that this user triggered)
-  events ContactTimelineEvent[]
-
-  auditEvents AuditEvent[]
-
+  fullName                String
+  createdAt               DateTime                         @default(now())
+  updatedAt               DateTime                         @updatedAt
+  password                String
+  enabled                 Boolean                          @default(true)
+  type                    AccessGroup                      @default(CLIENT)
+  tenetId                 Bytes?
+  system                  Boolean                          @default(false)
   /// @@soft-delete
-  deleted   Boolean   @default(false)
-  deletedAt DateTime?
-
-  templateAssignments TemplateAssignment[]
-  // Activities that this user assigned to other people
-  assignedActivities  Activity[]
-
-  /// @jointable(Opportunity, opportunityRelation)
-  /// @ai-field(Opportunities this user is involved in)
-  opportunities UserOpportunityJoin[]
-
-  /// @jointable(ActivityStep, stepRelation)
+  deleted                 Boolean                          @default(false)
+  deletedAt               DateTime?
+  assignedActivities      Activity[]
   activitySteps           ActivityStepUserJoin[]
   templateStepAssignments ActivityTemplateStepAssignment[]
+  activities              ActivityUserJoin[]
+  auditEvents             AuditEvent[]
+  events                  ContactTimelineEvent[]
+  notes                   Note[]
+  templateAssignments     TemplateAssignment[]
+  tokens                  Token[]
+  opportunities           UserOpportunityJoin[]
+  waypoints               UserWaypointJoin[]
+  tenet                   Tenet?                           @relation(fields: [tenetId], references: [id], onDelete: Cascade)
 
   @@index([fullName])
   @@index([tenetId])
@@ -107,124 +84,68 @@ model User {
 
 model Contact {
   /// @@ai-enabled
-  // ** Common to all contact types ** //
-  id        Bytes   @id
+  id                                   Bytes                             @id
   /// @ai-field
-  firstName String?
+  firstName                            String?
   /// @ai-field
-  lastName  String
+  lastName                             String
   /// @wrapper-ignore
-  fullName  String
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
+  fullName                             String
+  tenetId                              Bytes
   /// @ai-field
-  importantNotes String?
-
-  /// @ai-field
-  notes Note[]
-
-  /// @ai-field(Events associated with this contact's activities, this is used for a timeline of interactions with the contact)
-  /// @jointable(ContactTimelineEvent, contactEventRelation)
-  /// @join(type, contactTimelineRelationshipType)
-  timelineEvents ContactTimelineEventContactJoin[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  importantNotes                       String?
+  createdAt                            DateTime                          @default(now())
+  updatedAt                            DateTime                          @updatedAt
   /// @graph
   /// @ai-field(Contact type, either individual, household, or company)
-  type           ContactType
+  type                                 ContactType
   /// @ai-field
-  status         ContactStatus
+  status                               ContactStatus
   /// @ai-field(Contact's investment lifecycle stage)
-  lifecycleStage LifecycleStage?
-
-  // Contact info
+  lifecycleStage                       LifecycleStage?
+  lastContactedDate                    DateTime?
+  followUpDate                         DateTime?
   /// @ai-field
-  addresses      Address[]
+  householdId                          Bytes?
   /// @ai-field
-  emails         ContactEmail[]
+  householdStatus                      HouseholdRelationshipStatus?
   /// @ai-field
-  phones         ContactPhone[]
+  companyId                            Bytes?
   /// @ai-field
-  importantDates ImportantDate[]
-
-  /// @jointable(Activity, activityRelation)
-  /// @ai-field(Activities that the contact is involved in)
-  activities ActivityContactJoin[]
-
-  lastContactedDate DateTime?
-  followUpDate      DateTime?
-
-  // ** Individual Related ** //
-  // Household stuff
+  position                             String?
   /// @ai-field
-  household          Contact?                     @relation(name: "household", fields: [householdId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  companyStatus                        CompanyRelationshipStatus?
   /// @ai-field
-  householdId        Bytes?
-  headOfHouseholdFor Contact?                     @relation(name: "headOfHousehold")
+  headOfHouseholdId                    Bytes?                            @unique
   /// @ai-field
-  householdStatus    HouseholdRelationshipStatus?
-
-  // Company stuff
-  /// @ai-field
-  company           Contact?                   @relation(name: "company", fields: [companyId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  /// @ai-field
-  companyId         Bytes?
-  /// @ai-field
-  position          String? // Job title*
-  primaryContactFor Contact?                   @relation(name: "primaryContact")
-  /// @ai-field
-  companyStatus     CompanyRelationshipStatus?
-
-  // ** Household Related ** //
-  /// @ai-field(For household-type contacts only, who is the head of the household)
-  headOfHousehold   Contact?  @relation(name: "headOfHousehold", fields: [headOfHouseholdId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  /// @ai-field
-  headOfHouseholdId Bytes?    @unique
-  /// @ai-field
-  householdMembers  Contact[] @relation(name: "household")
-
-  // ** Company Related ** //
-  /// @ai-field(This company's employees)
-  employees Contact[] @relation(name: "company") // Must be individuals
-  /// @ai-field
-  industry  String?
+  industry                             String?
   /// @ai-field(This company's website)
-  website   String?
+  website                              String?
   /// @ai-field(This company's size)
-  size      Int?
-
-  /// @ai-field(The primary contact for the company)
-  primaryContact   Contact? @relation(name: "primaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  size                                 Int?
   /// @ai-field
-  primaryContactId Bytes?   @unique
-
+  primaryContactId                     Bytes?                            @unique
   /// @@soft-delete
-  deleted   Boolean   @default(false)
-  deletedAt DateTime?
-
-  /// @jointable(Opportunity, opportunityRelation)
-  /// @ai-field(Related opportunities)
-  opportunities ContactOpportunityJoin[]
-
-  /// @jointable(Contact, target)
-  /// @ai-field(Related contacts where this contact is considered the source of the relationship)
-  /// @join(type, contactRelationType)
-  /// @join(established, contactRelationEstablished)
-  /// @join(notes, contactRelationNotes)
-  /// @joinid(relationId)
-  relationAsSource ContactRelationship[] @relation(name: "source")
-
-  /// @jointable(Contact, source)
-  /// @ai-field(Related contacts where this contact is considered the target of the relationship)
-  /// @join(type, contactRelationType)
-  /// @join(established, contactRelationEstablished)
-  /// @join(notes, contactRelationNotes)
-  /// @joinid(relationId)
-  relationAsTarget ContactRelationship[] @relation(name: "target")
+  deleted                              Boolean                           @default(false)
+  deletedAt                            DateTime?
+  activities                           ActivityContactJoin[]
+  emails                               ContactEmail[]
+  opportunities                        ContactOpportunityJoin[]
+  phones                               ContactPhone[]
+  relationAsSource                     ContactRelationship[]             @relation("source")
+  relationAsTarget                     ContactRelationship[]             @relation("target")
+  contact_timeline_events_contact_join ContactTimelineEventContactJoin[]
+  company                              Contact?                          @relation("company", fields: [companyId], references: [id])
+  employees                            Contact[]                         @relation("company")
+  headOfHousehold                      Contact?                          @relation("headOfHousehold", fields: [headOfHouseholdId], references: [id])
+  headOfHouseholdFor                   Contact?                          @relation("headOfHousehold")
+  household                            Contact?                          @relation("household", fields: [householdId], references: [id])
+  householdMembers                     Contact[]                         @relation("household")
+  primaryContact                       Contact?                          @relation("primaryContact", fields: [primaryContactId], references: [id])
+  primaryContactFor                    Contact?                          @relation("primaryContact")
+  tenet                                Tenet                             @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  importantDates                       ImportantDate[]
+  notes                                Note[]
 
   @@index([fullName])
   @@index([lastName])
@@ -243,17 +164,14 @@ model Contact {
 
 model ContactRelationship {
   /// @@wrapper-ignore
-  id Bytes @id
-
-  source   Contact @relation(name: "source", fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  sourceId Bytes
-
-  target   Contact @relation(name: "target", fields: [targetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  targetId Bytes
-
+  id          Bytes     @id
+  sourceId    Bytes
+  targetId    Bytes
   type        String
   established DateTime?
   notes       String?
+  source      Contact   @relation("source", fields: [sourceId], references: [id], onDelete: Cascade)
+  target      Contact   @relation("target", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([sourceId, targetId, type])
   @@map("contact_relationships")
@@ -262,33 +180,23 @@ model ContactRelationship {
 
 model ActivityStep {
   /// @@ai-enabled
-  id Bytes @id
-
+  id         Bytes                  @id
   /// @ai-field
-  title String
-
+  title      String
   /// @ai-field
-  completed Boolean
-
-  /// @ai-field(Parent activity of this step)
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  completed  Boolean
   /// @ai-field
   activityId Bytes
-
-  /// @jointable(User, userRelation)
-  /// @ai-field(Assigned users, if empty this is the same as the parent activity)
-  assignedTo ActivityStepUserJoin[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  tenetId    Bytes
   /// @ai-field(Type of step, either checkbox, attachment, or form)
-  type  ActivityStepType @default(CHECK)
+  type       ActivityStepType       @default(CHECK)
   /// @ai-field(Step order)
-  order Int
+  order      Int
+  assignedTo ActivityStepUserJoin[]
+  activity   Activity               @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  tenet      Tenet                  @relation(fields: [tenetId], references: [id], onDelete: Cascade)
 
   @@index([activityId])
   @@index([tenetId])
@@ -299,34 +207,22 @@ model ActivityStep {
 
 model ActivityStepUserJoin {
   /// @@wrapper-ignore
-
   activityStepId Bytes
-  stepRelation   ActivityStep @relation(fields: [activityStepId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  userId       Bytes
-  userRelation User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId         Bytes
+  stepRelation   ActivityStep @relation(fields: [activityStepId], references: [id], onDelete: Cascade)
+  userRelation   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([activityStepId, userId])
   @@map("activity_step_user_joins")
   @@schema("crm")
 }
 
-enum ActivityStepType {
-  /// @@ai-enum-description(Describes the type of step in an activity)
-  CHECK
-  ATTACHMENT
-  FORM
-
-  @@schema("crm")
-}
-
 model UserWaypointJoin {
   /// @@wrapper-ignore
-  userId       Bytes
-  userRelation User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
+  userId           Bytes
   waypointId       Bytes
-  waypointRelation ActivityWaypoint @relation(fields: [waypointId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userRelation     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  waypointRelation ActivityWaypoint @relation(fields: [waypointId], references: [id], onDelete: Cascade)
 
   @@id([userId, waypointId])
   @@map("user_waypoint_join")
@@ -335,42 +231,28 @@ model UserWaypointJoin {
 
 model ActivityWaypoint {
   /// @@ai-enabled
-  id Bytes @id
-
-  title       String
-  description String?
-  summary     String? // Summary of what happened in the waypoint
-  status      ActivityStatus
-
-  order Int
-
-  actualStart DateTime // Waypoints are created when they have a defined start
-  dueDate     DateTime
-  actualEnd   DateTime?
-
-  /// @ai-field(Users who are involved in this waypoint)
-  /// @jointable(User, userRelation)
-  users UserWaypointJoin[]
-
-  /// @ai-field(Parent activity of this waypoint)
-  activity   Activity @relation(name: "childWaypoints", fields: [activityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id              Bytes                     @id
+  title           String
+  description     String?
+  summary         String?
+  status          ActivityStatus
+  order           Int
+  actualStart     DateTime
+  dueDate         DateTime
+  actualEnd       DateTime?
   /// @ai-field
-  activityId Bytes
-
-  /// @ai-field(Activities associated with this waypoint)
-  childActivities Activity[] @relation(name: "parentWaypoint")
-
-  template   ActivityWaypointTemplate? @relation(fields: [templateId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  templateId Bytes?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  events ContactTimelineEvent[]
-
-  tenet   Tenet  @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-  Note    Note[]
+  activityId      Bytes
+  templateId      Bytes?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  tenetId         Bytes
+  childActivities Activity[]                @relation("parentWaypoint")
+  activity        Activity                  @relation("childWaypoints", fields: [activityId], references: [id], onDelete: Cascade)
+  template        ActivityWaypointTemplate? @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  tenet           Tenet                     @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  events          ContactTimelineEvent[]
+  Note            Note[]
+  users           UserWaypointJoin[]
 
   @@index([activityId])
   @@index([templateId])
@@ -381,24 +263,18 @@ model ActivityWaypoint {
 }
 
 model TemplateAssignment {
-  id Bytes @id
-
-  specificUser   User?  @relation(fields: [specificUserId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  specificUserId Bytes?
-
-  specificRole Role?
-
-  activityTemplate   ActivityTemplate? @relation(fields: [activityTemplateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                 Bytes                     @id
+  specificUserId     Bytes?
+  specificRole       Role?
   activityTemplateId Bytes?
-
-  waypointTemplate   ActivityWaypointTemplate? @relation(fields: [waypointTemplateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   waypointTemplateId Bytes?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  tenetId            Bytes
+  activityTemplate   ActivityTemplate?         @relation(fields: [activityTemplateId], references: [id], onDelete: Cascade)
+  specificUser       User?                     @relation(fields: [specificUserId], references: [id], onDelete: Cascade)
+  tenet              Tenet                     @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  waypointTemplate   ActivityWaypointTemplate? @relation(fields: [waypointTemplateId], references: [id], onDelete: Cascade)
 
   @@index([waypointTemplateId])
   @@index([activityTemplateId])
@@ -409,31 +285,22 @@ model TemplateAssignment {
 }
 
 model ActivityWaypointTemplate {
-  id Bytes @id
-
-  title         String
-  description   String?
-  defaultStatus ActivityStatus
-
-  order Int
-
-  dateOffsetType DateOffsetType
-  dueDate        Int
-
-  parentActivity   ActivityTemplate @relation(name: "childWaypoints", fields: [parentActivityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id               Bytes                @id
+  title            String
+  description      String?
+  defaultStatus    ActivityStatus
+  order            Int
+  dateOffsetType   DateOffsetType
+  dueDate          Int
   parentActivityId Bytes
-
-  activities ActivityTemplate[] @relation(name: "parentWaypoint")
-
-  waypoints ActivityWaypoint[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  assignments TemplateAssignment[]
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  tenetId          Bytes
+  activities       ActivityTemplate[]   @relation("parentWaypoint")
+  parentActivity   ActivityTemplate     @relation("childWaypoints", fields: [parentActivityId], references: [id], onDelete: Cascade)
+  tenet            Tenet                @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  waypoints        ActivityWaypoint[]
+  assignments      TemplateAssignment[]
 
   @@index([parentActivityId])
   @@index([tenetId])
@@ -443,18 +310,15 @@ model ActivityWaypointTemplate {
 }
 
 model ActivityTemplateStep {
-  id    Bytes            @id
-  order Int
-  title String
-  type  ActivityStepType @default(CHECK)
-
-  activityTemplate   ActivityTemplate @relation(fields: [activityTemplateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                 Bytes                            @id
+  order              Int
+  title              String
+  type               ActivityStepType                 @default(CHECK)
   activityTemplateId Bytes
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
-  assignedTo ActivityTemplateStepAssignment[]
+  tenetId            Bytes
+  assignedTo         ActivityTemplateStepAssignment[]
+  activityTemplate   ActivityTemplate                 @relation(fields: [activityTemplateId], references: [id], onDelete: Cascade)
+  tenet              Tenet                            @relation(fields: [tenetId], references: [id], onDelete: Cascade)
 
   @@index([activityTemplateId])
   @@index([order])
@@ -464,18 +328,14 @@ model ActivityTemplateStep {
 }
 
 model ActivityTemplateStepAssignment {
-  id Bytes @id
-
-  specificUser   User?  @relation(fields: [specificUserId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  specificUserId Bytes?
-
-  specificRole Role?
-
-  activityTemplateStep   ActivityTemplateStep @relation(fields: [activityTemplateStepId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                     Bytes                @id
+  specificUserId         Bytes?
+  specificRole           Role?
   activityTemplateStepId Bytes
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
+  tenetId                Bytes
+  activityTemplateStep   ActivityTemplateStep @relation(fields: [activityTemplateStepId], references: [id], onDelete: Cascade)
+  specificUser           User?                @relation(fields: [specificUserId], references: [id], onDelete: Cascade)
+  tenet                  Tenet                @relation(fields: [tenetId], references: [id], onDelete: Cascade)
 
   @@index([tenetId])
   @@index([activityTemplateStepId])
@@ -484,51 +344,33 @@ model ActivityTemplateStepAssignment {
 }
 
 model ActivityTemplate {
-  id Bytes @id
-
-  title       String
-  description String?
-  type        ActivityType
-
-  defaultPriority ActivityPriority
-  defaultStatus   ActivityStatus
-
-  // For tasks/schedule
-  steps            ActivityTemplateStep[]
-  taskScheduleType TaskScheduleType?
-  dateOffsetType   DateOffsetType
-  startDate        Int
-  endDate          Int
-
-  // If DateOffsetType is ACTIVITY, this is the activity that the start date is relative to
-  startRelativeTo   ActivityTemplate?  @relation(name: "startRelativeTo", fields: [startRelativeToId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                Bytes                      @id
+  title             String
+  description       String?
+  type              ActivityType
+  defaultPriority   ActivityPriority
+  defaultStatus     ActivityStatus
+  taskScheduleType  TaskScheduleType?
+  dateOffsetType    DateOffsetType
+  startDate         Int
+  endDate           Int
   startRelativeToId Bytes?
-  dependents        ActivityTemplate[] @relation(name: "startRelativeTo")
-
-  parentWaypoint   ActivityWaypointTemplate? @relation(name: "parentWaypoint", fields: [parentWaypointId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  parentWaypointId Bytes?
-
-  parentActivity   ActivityTemplate? @relation(name: "parentActivity", fields: [parentActivityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  parentActivityId Bytes?
-
-  // For paths
-  waypoints ActivityWaypointTemplate[] @relation(name: "childWaypoints")
-
-  // For waypoint-type activities and paths
-  childActivities ActivityTemplate[] @relation(name: "parentActivity")
-
-  // Activities using this template
-  activities Activity[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  assignments TemplateAssignment[]
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
-  order Int?
+  parentWaypointId  Bytes?
+  parentActivityId  Bytes?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  tenetId           Bytes
+  order             Int?
+  activities        Activity[]
+  steps             ActivityTemplateStep[]
+  parentActivity    ActivityTemplate?          @relation("parentActivity", fields: [parentActivityId], references: [id], onDelete: Cascade)
+  childActivities   ActivityTemplate[]         @relation("parentActivity")
+  parentWaypoint    ActivityWaypointTemplate?  @relation("parentWaypoint", fields: [parentWaypointId], references: [id])
+  startRelativeTo   ActivityTemplate?          @relation("startRelativeTo", fields: [startRelativeToId], references: [id], onDelete: Cascade)
+  dependents        ActivityTemplate[]         @relation("startRelativeTo")
+  tenet             Tenet                      @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  waypoints         ActivityWaypointTemplate[] @relation("childWaypoints")
+  assignments       TemplateAssignment[]
 
   @@index([title])
   @@index([parentWaypointId])
@@ -539,101 +381,63 @@ model ActivityTemplate {
   @@schema("crm")
 }
 
-enum DateOffsetType {
-  /// @@ai-enum-description(Describes how a date is offset in a template, either from the beginning of the template, the start of the activity\'s parent waypoint, or the completion of another activity within the path)
-  WAYPOINT
-  ACTIVITY
-  PATH_START
-
-  @@schema("crm")
-}
-
 model Activity {
   /// @@ai-enabled
-  id    Bytes        @id
+  id               Bytes                  @id
   /// @ai-field
-  title String
+  title            String
   /// @ai-field(Activity type, either task or schedule item)
-  type  ActivityType
-
-  /// @ai-field(Steps required to complete this activity)
-  steps ActivityStep[]
-
-  /// @ai-field(Waypoints required to complete this activity if it's a path)
-  waypoints ActivityWaypoint[] @relation(name: "childWaypoints")
-
-  /// @ai-field(Child activities of this activity, if it's a waypoints or path)
-  activities Activity[] @relation(name: "childActivity")
-
-  /// @ai-field(Parent activity of this activity)
-  parentActivity   Activity? @relation(name: "childActivity", fields: [parentActivityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  type             ActivityType
   /// @ai-field
   parentActivityId Bytes?
-
-  /// @ai-field(Parent waypoint of this activity)
-  parentWaypoint   ActivityWaypoint? @relation(name: "parentWaypoint", fields: [parentWaypointId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   /// @ai-field
   parentWaypointId Bytes?
-
-  template   ActivityTemplate? @relation(fields: [templateId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  templateId Bytes?
-
+  templateId       Bytes?
   /// @ai-field(Task/Schedule item subtype. Not applicable to notes)
-  taskScheduleType TaskScheduleType? // Required for task and schedule items not multi-activities/paths
+  taskScheduleType TaskScheduleType?
   /// @ai-field
   startDate        DateTime
   /// @ai-field(The due date for this activity, for task/schedule items only)
-  endDate          DateTime // For single activities (task/schedule items)
+  endDate          DateTime
   /// @ai-field
   completedAt      DateTime?
-
   /// @ai-field
-  description String?
+  description      String?
   /// @ai-field
-  priority    ActivityPriority @default(MEDIUM)
+  priority         ActivityPriority       @default(MEDIUM)
   /// @ai-field
-  status      ActivityStatus // Required for task and schedule items not notes
-
-  assignedBy   User  @relation(fields: [assignedById], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  assignedById Bytes
-
+  status           ActivityStatus
+  assignedById     Bytes
   /// @ai-field
-  phoneNumber String? // Specific to phone calls
+  phoneNumber      String?
   /// @ai-field
-  location    String? // Physical location or meeting link
+  location         String?
   /// @ai-field(For schedule items only of type/subtype hold)
-  holdReason  String? // For hold items
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /// @jointable(Contact, contactRelation)
-  /// @ai-field
-  contacts ActivityContactJoin[]
-  /// @jointable(User, userRelation)
-  /// @ai-field
-  users    ActivityUserJoin[]
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
-  attachments Attachment[]
-  /// @ai-field
-  notes       Note[]
-
-  /// @ai-field(Timeline of interactions with this activity)
-  events ContactTimelineEvent[]
-
+  holdReason       String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  tenetId          Bytes
   /// @@soft-delete
-  deleted   Boolean   @default(false)
-  deletedAt DateTime?
-
+  deleted          Boolean                @default(false)
+  deletedAt        DateTime?
   /// @ai-field(Order within the waypoint-type activitiy or individual path waypoint)
-  order         Int? // Order from template, when associate with path/waypoints
-  /// @ai-field(Associated opportunity)
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  order            Int?
   /// @ai-field
-  opportunityId Bytes?
+  opportunityId    Bytes?
+  assignedBy       User                   @relation(fields: [assignedById], references: [id], onDelete: Cascade)
+  opportunity      Opportunity?           @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  parentActivity   Activity?              @relation("childActivity", fields: [parentActivityId], references: [id], onDelete: Cascade)
+  activities       Activity[]             @relation("childActivity")
+  parentWaypoint   ActivityWaypoint?      @relation("parentWaypoint", fields: [parentWaypointId], references: [id])
+  template         ActivityTemplate?      @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  tenet            Tenet                  @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  contacts         ActivityContactJoin[]
+  steps            ActivityStep[]
+  users            ActivityUserJoin[]
+  waypoints        ActivityWaypoint[]     @relation("childWaypoints")
+  attachments      Attachment[]
+  events           ContactTimelineEvent[]
+  notes            Note[]
 
   @@index([startDate])
   @@index([endDate])
@@ -656,54 +460,34 @@ model Activity {
 
 model ContactTimelineEvent {
   /// @@ai-enabled
-  id Bytes @id
-
+  id                                   Bytes                             @id
   /// @ai-field
-  activityId Bytes?
-  /// @ai-field(If associated with an activity, the activity this event is associated with)
-  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  /// @ai-field(If the activity is associated with an waypoint, the waypoint this event is associated with)
-  waypoint   ActivityWaypoint? @relation(fields: [waypointId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  activityId                           Bytes?
   /// @ai-field
-  waypointId Bytes?
-
-  /// @ai-field(If associated with an opportunity, the opportunity this event is associated with)
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  waypointId                           Bytes?
   /// @ai-field
-  opportunityId Bytes?
-
+  opportunityId                        Bytes?
   /// @ai-field(If associated with a note, the note this event is associated with)
-  noteId Bytes?
-  /// @ai-field(If associated with a note, the note this event is associated with)
-  note   Note?  @relation(fields: [noteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
+  noteId                               Bytes?
   /// @ai-field(Info about the event, like what was updated)
-  extraInfo String?
-
-  /// @ai-field(The associated contacts)
-  /// @jointable(Contact, contactRelation)
-  /// @join(type, contactTimelineRelationshipType)
-  contacts ContactTimelineEventContactJoin[]
-
+  extraInfo                            String?
   /// @ai-field
-  userId Bytes
-  /// @ai-field(The user who caused this event)
-  user   User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  tenetId Bytes
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
+  userId                               Bytes
+  tenetId                              Bytes
   /// @ai-field
-  eventType ContactTimelineEventType
-
+  eventType                            ContactTimelineEventType
   /// @ai-field(If the event is a relationship, the name of the relationship)
-  relationshipType String?
+  relationshipType                     String?
+  createdAt                            DateTime                          @default(now())
+  updatedAt                            DateTime                          @updatedAt
+  activity                             Activity?                         @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  note                                 Note?                             @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  opportunity                          Opportunity?                      @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  tenet                                Tenet                             @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  user                                 User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  waypoint                             ActivityWaypoint?                 @relation(fields: [waypointId], references: [id], onDelete: Cascade)
+  contact_timeline_events_contact_join ContactTimelineEventContactJoin[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // TODO: Add email objects
   @@index([activityId])
   @@index([noteId])
   @@index([userId])
@@ -713,62 +497,18 @@ model ContactTimelineEvent {
   @@schema("crm")
 }
 
-enum ContactTimelineEventType {
-  /// @@ai-enum-description(Describes the type of timeline event that occurred)
-  NOTE
-
-  ACTIVITY_CREATED
-  ACTIVITY_COMPLETED
-  ACTIVITY_CANCELLED
-  ACTIVITY_FAILED
-  ACTIVITY_STATUS_CHANGED // For other statuses
-  ACTIVITY_REMOVED
-  ACTIVITY_STEP_CHANGED
-  ACTIVITY_ADDED_TO // When contacts are added to an activity
-  ACTIVITY_REMOVED_FROM // When contacts are removed from an activity
-
-  WAYPOINT_CREATED
-
-  CONTACT_CREATED
-  CONTACT_REMOVED
-
-  // For households/companies
-  MEMBER_ADDED
-  MEMBER_REMOVED
-
-  RELATIONSHIP_ADDED
-  RELATIONSHIP_REMOVED
-
-  OPPORTUNITY_CREATED
-  OPPORTUNITY_REMOVED
-  OPPORTUNITY_WON
-  OPPORTUNITY_LOST
-  OPPORTUNITY_CANCELLED
-  OPPORTUNITY_STATUS_CHANGED
-
-  EMAIL_SENT
-  EMAIL_RECEIVED
-
-  @@schema("crm")
-}
-
 model AuditEvent {
-  id Bytes @id
-
-  userId Bytes
-  user   User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  tenetId Bytes
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  type    AuditEventType
-  details String?
-
+  id          Bytes          @id
+  userId      Bytes
+  tenetId     Bytes
+  type        AuditEventType
+  details     String?
   referenceId Bytes
   reference   Auditable
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  tenet       Tenet          @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([reference, referenceId])
   @@index([type])
@@ -776,6 +516,499 @@ model AuditEvent {
   @@index([tenetId])
   @@index([createdAt])
   @@map("audit_events")
+  @@schema("crm")
+}
+
+model ContactTimelineEventContactJoin {
+  contactEventId          Bytes
+  contactId               Bytes
+  /// @ai-field(Describes how this contact relates to a contact event.)
+  type                    ContactTimelineEventJoinType
+  contact_timeline_events ContactTimelineEvent         @relation(fields: [contactEventId], references: [id], onDelete: Cascade)
+  contacts                Contact                      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([contactEventId, contactId])
+  @@map("contact_timeline_events_contact_join")
+  @@schema("crm")
+}
+
+model Note {
+  /// @@ai-enabled
+  id            Bytes                  @id
+  /// @ai-field
+  content       String
+  /// @ai-field
+  waypointId    Bytes?
+  /// @ai-field
+  activityId    Bytes?
+  /// @ai-field
+  contactId     Bytes?
+  /// @ai-field
+  opportunityId Bytes?
+  tenetId       Bytes
+  /// @ai-field
+  authorId      Bytes
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  /// @@soft-delete
+  deleted       Boolean                @default(false)
+  deletedAt     DateTime?
+  noteType      NoteType               @default(NOTE)
+  events        ContactTimelineEvent[]
+  activity      Activity?              @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  author        User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  contact       Contact?               @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity?           @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  tenet         Tenet                  @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  waypoint      ActivityWaypoint?      @relation(fields: [waypointId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([tenetId])
+  @@index([activityId])
+  @@index([contactId])
+  @@index([deleted])
+  @@map("notes")
+  @@schema("crm")
+}
+
+model Attachment {
+  id         Bytes     @id
+  name       String
+  location   String
+  activityId Bytes?
+  tenetId    Bytes
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  tenet      Tenet     @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+
+  @@index([name])
+  @@index([tenetId])
+  @@index([location])
+  @@map("attachments")
+  @@schema("crm")
+}
+
+model ActivityContactJoin {
+  /// @@wrapper-ignore
+  activityId       Bytes
+  contactId        Bytes
+  activityRelation Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  contactRelation  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, contactId])
+  @@map("activity_contact_join")
+  @@schema("crm")
+}
+
+model ActivityUserJoin {
+  /// @@wrapper-ignore
+  activityId       Bytes
+  userId           Bytes
+  activityRelation Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userRelation     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, userId])
+  @@map("activity_user_join")
+  @@schema("crm")
+}
+
+model ContactEmail {
+  /// @@ai-enabled
+  id        Bytes    @id
+  /// @ai-field
+  email     String
+  /// @ai-field
+  isPrimary Boolean  @default(false)
+  /// @ai-field
+  contactId Bytes
+  tenetId   Bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tenet     Tenet    @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([tenetId])
+  @@index([contactId])
+  @@index([isPrimary])
+  @@map("contact_email")
+  @@schema("crm")
+}
+
+model ContactPhone {
+  /// @@ai-enabled
+  id        Bytes     @id
+  /// @ai-field
+  number    String
+  /// @ai-field
+  type      PhoneType
+  /// @ai-field
+  isPrimary Boolean   @default(false)
+  /// @ai-field
+  contactId Bytes
+  tenetId   Bytes
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tenet     Tenet     @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+
+  @@index([number])
+  @@index([type])
+  @@index([tenetId])
+  @@index([contactId])
+  @@index([isPrimary])
+  @@map("contact_phone")
+  @@schema("crm")
+}
+
+model Address {
+  /// @@ai-enabled
+  id        Bytes       @id
+  /// @ai-field
+  street    String
+  /// @ai-field
+  city      String
+  /// @ai-field
+  state     String
+  /// @ai-field
+  zip       String
+  /// @ai-field
+  country   String
+  /// @ai-field
+  type      AddressType
+  /// @ai-field
+  primary   Boolean     @default(false)
+  contactid Bytes
+  tenetid   Bytes
+  createdat DateTime    @default(now())
+  updatedat DateTime
+  /// @ai-field
+  timezone  String?
+
+  @@map("addresses")
+  @@schema("crm")
+}
+
+model ConfigOption {
+  id    Bytes  @id
+  name  String @unique
+  /// @uniqueEncrypted
+  value String
+
+  @@map("config")
+  @@schema("crm")
+}
+
+model ImportantDate {
+  /// @@ai-enabled
+  id        Bytes             @id
+  /// @ai-field
+  date      DateTime
+  /// @ai-field
+  type      ImportantDateType
+  /// @ai-field
+  contactId Bytes
+  tenetId   Bytes
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  contact   Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tenet     Tenet             @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([type])
+  @@index([contactId])
+  @@index([tenetId])
+  @@map("important_dates")
+  @@schema("crm")
+}
+
+model Opportunity {
+  /// @@ai-enabled
+  id                Bytes                    @id
+  /// @ai-field
+  title             String
+  /// @ai-field
+  description       String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  /// @ai-field(Value of the opportunity)
+  value             Float
+  /// @ai-field(Probability of closing the opportunity based on historical data)
+  probability       Float
+  /// @ai-field
+  expectedCloseDate DateTime
+  /// @ai-field
+  actualCloseDate   DateTime?
+  /// @ai-field
+  status            OpportunityStatus
+  statusHistory     OpportunityStatus[]
+  /// @@soft-delete
+  deleted           Boolean                  @default(false)
+  deletedAt         DateTime?
+  tenetId           Bytes
+  /// @wrapper-ignore
+  expectedValue     Float
+  activities        Activity[]
+  contacts          ContactOpportunityJoin[]
+  events            ContactTimelineEvent[]
+  notes             Note[]
+  tenet             Tenet                    @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+  products          OpportunityProduct[]
+  teamMembers       UserOpportunityJoin[]
+
+  @@index([title])
+  @@index([status])
+  @@index([expectedCloseDate])
+  @@index([actualCloseDate])
+  @@index([tenetId])
+  @@index([deleted])
+  @@map("opportunities")
+  @@schema("crm")
+}
+
+model ContactOpportunityJoin {
+  /// @@wrapper-ignore
+  contactId           Bytes
+  opportunityId       Bytes
+  contactRelation     Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  opportunityRelation Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, opportunityId])
+  @@map("contact_opportunity_join")
+  @@schema("crm")
+}
+
+model UserOpportunityJoin {
+  /// @@wrapper-ignore
+  userId              Bytes
+  opportunityId       Bytes
+  opportunityRelation Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  userRelation        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, opportunityId])
+  @@map("user_opportunity_join")
+  @@schema("crm")
+}
+
+model OpportunityProduct {
+  /// @@ai-enabled
+  id            Bytes       @id
+  /// @ai-field
+  price         Float
+  /// @ai-field(Display order)
+  order         Int
+  /// @ai-field
+  commission    Float
+  opportunityId Bytes
+  productTypeId Bytes
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  productType   ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@index([productTypeId])
+  @@index([order])
+  @@map("opportunity_product")
+  @@schema("crm")
+}
+
+model ProductType {
+  /// @@ai-enabled
+  id                Bytes                @id
+  /// @ai-field
+  title             String
+  /// @ai-field
+  description       String?
+  /// @ai-field
+  defaultCommission Float
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  tenetId           Bytes
+  opportunities     OpportunityProduct[]
+  tenet             Tenet                @relation(fields: [tenetId], references: [id], onDelete: Cascade)
+
+  @@index([tenetId])
+  @@index([title])
+  @@map("products")
+  @@schema("crm")
+}
+
+model Log {
+  id            Bytes    @id
+  /// @uniqueEncrypted
+  userEmail     String?
+  tenetId       Bytes?
+  message       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  severity      LogLevel @default(INFO)
+  /// @encrypted
+  stacktrace    String?
+  /// @uniqueEncrypted
+  source        String?
+  /// @uniqueEncrypted
+  secureDetails String?
+  tenet         Tenet?   @relation(fields: [tenetId], references: [id])
+
+  @@index([createdAt])
+  @@index([message])
+  @@index([severity])
+  @@index([tenetId])
+  @@map("logs")
+  @@schema("crm")
+}
+
+model Token {
+  id        Bytes    @id
+  userId    Bytes
+  createdAt DateTime @default(now())
+  refresh   Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("tokens")
+  @@schema("crm")
+}
+
+model TZData {
+  /// @@wrapper-ignore
+  id           Int    @id @default(autoincrement())
+  name         String
+  provinceName String
+  countryCode  String @db.VarChar(2)
+  tz           String
+
+  @@unique([name, provinceName, countryCode], map: "tz_data_name_provincename_countrycode_key")
+  @@map("tz_data")
+  @@schema("crm")
+}
+
+model TestObject {
+  id        Bytes             @id
+  required  String
+  persisted String?
+  join1     JoinTestObject[]
+  join2     JoinTestObject2[]
+  wrapped   WrappedObject[]
+
+  @@schema("tests")
+}
+
+model WrappedObject {
+  id           Bytes      @id
+  persisted    String?
+  testObjectId Bytes
+  testObject   TestObject @relation(fields: [testObjectId], references: [id], onDelete: Cascade)
+
+  @@schema("tests")
+}
+
+model JoinTestObject {
+  /// @@wrapper-ignore
+  testObjectId         Bytes
+  joinedObjectId       Bytes
+  joinProperty         String
+  joinedObjectRelation JoinedObject1 @relation(fields: [joinedObjectId], references: [id], onDelete: Cascade)
+  testObjectRelation   TestObject    @relation(fields: [testObjectId], references: [id], onDelete: Cascade)
+
+  @@id([testObjectId, joinedObjectId])
+  @@schema("tests")
+}
+
+model JoinTestObject2 {
+  /// @@wrapper-ignore
+  id                   Bytes         @id
+  testObjectId         Bytes
+  joinedObjectId       Bytes
+  joinProperty         String
+  joinedObjectRelation JoinedObject2 @relation(fields: [joinedObjectId], references: [id], onDelete: Cascade)
+  testObjectRelation   TestObject    @relation(fields: [testObjectId], references: [id], onDelete: Cascade)
+
+  @@schema("tests")
+}
+
+model JoinedObject1 {
+  id          Bytes            @id
+  persisted   String?
+  testObjects JoinTestObject[]
+
+  @@schema("tests")
+}
+
+model JoinedObject2 {
+  id          Bytes             @id
+  persisted   String?
+  testObjects JoinTestObject2[]
+
+  @@schema("tests")
+}
+
+model JoinSelfReference {
+  /// @@wrapper-ignore
+  id           Bytes                    @id
+  sourceId     Bytes
+  targetId     Bytes
+  joinProperty String
+  source       SelfReferencialJoinModel @relation("source", fields: [sourceId], references: [id], onDelete: Cascade)
+  target       SelfReferencialJoinModel @relation("target", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@schema("tests")
+}
+
+model SelfReferencialJoinModel {
+  id            Bytes               @id
+  joinsAsSource JoinSelfReference[] @relation("source")
+  joinsAsTarget JoinSelfReference[] @relation("target")
+
+  @@schema("tests")
+}
+
+enum ActivityStepType {
+  /// @@ai-enum-description(Describes the type of step in an activity)
+  CHECK
+  ATTACHMENT
+  FORM
+
+  @@schema("crm")
+}
+
+enum DateOffsetType {
+  /// @@ai-enum-description(Describes how a date is offset in a template, either from the beginning of the template, the start of the activity's parent waypoint, or the completion of another activity within the path)
+  WAYPOINT
+  ACTIVITY
+  PATH_START
+
+  @@schema("crm")
+}
+
+enum ContactTimelineEventType {
+  /// @@ai-enum-description(Describes the type of timeline event that occurred)
+  NOTE
+  ACTIVITY_CREATED
+  ACTIVITY_COMPLETED
+  ACTIVITY_CANCELLED
+  ACTIVITY_FAILED
+  ACTIVITY_STATUS_CHANGED
+  ACTIVITY_REMOVED
+  ACTIVITY_STEP_CHANGED
+  ACTIVITY_ADDED_TO
+  ACTIVITY_REMOVED_FROM
+  WAYPOINT_CREATED
+  CONTACT_CREATED
+  CONTACT_REMOVED
+  MEMBER_ADDED
+  MEMBER_REMOVED
+  RELATIONSHIP_ADDED
+  RELATIONSHIP_REMOVED
+  OPPORTUNITY_CREATED
+  OPPORTUNITY_REMOVED
+  OPPORTUNITY_WON
+  OPPORTUNITY_LOST
+  OPPORTUNITY_CANCELLED
+  OPPORTUNITY_STATUS_CHANGED
+  EMAIL_SENT
+  EMAIL_RECEIVED
+
   @@schema("crm")
 }
 
@@ -799,28 +1032,11 @@ enum Auditable {
 enum AuditEventType {
   /// @@ai-disabled
   /// @@server
-  READ // Reading data from an auditable
+  READ
   CREATE
   UPDATE
   DELETE
 
-  // Other events
-  @@schema("crm")
-}
-
-model ContactTimelineEventContactJoin {
-  /// @@wrapper-ignore
-  contactEventId       Bytes
-  contactEventRelation ContactTimelineEvent @relation(fields: [contactEventId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  contactId       Bytes
-  contactRelation Contact @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  /// @ai-field(Describes how this contact relates to a contact event.)
-  type ContactTimelineEventJoinType
-
-  @@id([contactEventId, contactId])
-  @@map("contact_timeline_events_contact_join")
   @@schema("crm")
 }
 
@@ -837,321 +1053,12 @@ enum ContactTimelineEventJoinType {
   @@schema("crm")
 }
 
-model Note {
-  /// @@ai-enabled
-  id      Bytes  @id
-  /// @ai-field
-  content String
-
-  /// @ai-field
-  waypoint   ActivityWaypoint? @relation(fields: [waypointId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  /// @ai-field
-  waypointId Bytes?
-
-  /// @ai-field
-  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  /// @ai-field
-  activityId Bytes?
-
-  /// @ai-field
-  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  /// @ai-field
-  contactId Bytes?
-
-  /// @ai-field
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  /// @ai-field
-  opportunityId Bytes?
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
-  /// @ai-field
-  author   User  @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  /// @ai-field
-  authorId Bytes
-
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
-  events    ContactTimelineEvent[]
-
-  /// @@soft-delete
-  deleted   Boolean   @default(false)
-  deletedAt DateTime?
-
-  noteType NoteType @default(NOTE)
-
-  @@index([authorId])
-  @@index([tenetId])
-  @@index([activityId])
-  @@index([contactId])
-  @@index([deleted])
-  @@map("notes")
-  @@schema("crm")
-}
-
 enum NoteType {
   NOTE
   CALL
   CALL_OUTBOUND
   CALL_INBOUND
 
-  @@schema("crm")
-}
-
-model Attachment {
-  id         Bytes     @id
-  name       String
-  location   String
-  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  activityId Bytes?
-  tenet      Tenet     @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId    Bytes
-
-  @@index([name])
-  @@index([tenetId])
-  @@index([location])
-  @@map("attachments")
-  @@schema("crm")
-}
-
-model ActivityContactJoin {
-  /// @@wrapper-ignore
-  activityId       Bytes
-  contactId        Bytes
-  activityRelation Activity @relation(fields: [activityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  contactRelation  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@id([activityId, contactId])
-  @@map("activity_contact_join")
-  @@schema("crm")
-}
-
-model ActivityUserJoin {
-  /// @@wrapper-ignore
-  activityId       Bytes
-  activityRelation Activity @relation(fields: [activityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId           Bytes
-  userRelation     User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@id([activityId, userId])
-  @@map("activity_user_join")
-  @@schema("crm")
-}
-
-model ContactEmail {
-  /// @@ai-enabled
-  id        Bytes   @id
-  /// @ai-field
-  email     String
-  /// @ai-field
-  isPrimary Boolean @default(false)
-
-  /// @ai-field
-  contactId Bytes
-  /// @ai-field
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  tenetId Bytes
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([email])
-  @@index([tenetId])
-  @@index([contactId])
-  @@index([isPrimary])
-  @@map("contact_email")
-  @@schema("crm")
-}
-
-model ContactPhone {
-  /// @@ai-enabled
-  id        Bytes     @id
-  /// @ai-field
-  number    String
-  /// @ai-field
-  type      PhoneType
-  /// @ai-field
-  isPrimary Boolean   @default(false)
-
-  /// @ai-field
-  contactId Bytes
-  /// @ai-field
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  tenetId Bytes
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([number])
-  @@index([type])
-  @@index([tenetId])
-  @@index([contactId])
-  @@index([isPrimary])
-  @@map("contact_phone")
-  @@schema("crm")
-}
-
-model Address {
-  /// @@ai-enabled
-  id      Bytes       @id
-  /// @ai-field
-  street  String
-  /// @ai-field
-  city    String
-  /// @ai-field
-  state   String
-  /// @ai-field
-  zip     String
-  /// @ai-field
-  country String
-  /// @ai-field
-  type    AddressType
-  /// @ai-field
-  primary Boolean     @default(false)
-
-  /// @ai-field
-  contactId Bytes
-  /// @ai-field
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  tenetId Bytes
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /// @ai-field
-  timezone String?
-
-  @@index([street])
-  @@index([city])
-  @@index([state])
-  @@index([zip])
-  @@index([country])
-  @@index([contactId])
-  @@index([primary])
-  @@index([tenetId])
-  @@index([type])
-  @@map("addresses")
-  @@schema("crm")
-}
-
-model ConfigOption {
-  id    Bytes  @id
-  name  String @unique
-  /// @uniqueEncrypted
-  value String // Encrypted
-
-  @@map("config")
-  @@schema("crm")
-}
-
-model ImportantDate {
-  /// @@ai-enabled
-  id Bytes @id
-
-  /// @ai-field
-  date DateTime
-  /// @ai-field
-  type ImportantDateType
-
-  /// @ai-field
-  contactId Bytes
-  /// @ai-field
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  tenetId Bytes
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([date])
-  @@index([type])
-  @@index([contactId])
-  @@index([tenetId])
-  @@map("important_dates")
-  @@schema("crm")
-}
-
-model Opportunity {
-  /// @@ai-enabled
-  id Bytes @id
-
-  /// @ai-field
-  title    String
-  /// @jointable(Contact, contactRelation)
-  /// @ai-field(Associated contacts)
-  contacts ContactOpportunityJoin[]
-
-  /// @ai-field
-  description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /// @ai-field(Value of the opportunity)
-  value       Float
-  /// @ai-field(Probability of closing the opportunity based on historical data)
-  probability Float
-
-  /// @ai-field
-  expectedCloseDate DateTime
-  /// @ai-field
-  actualCloseDate   DateTime?
-
-  /// @ai-field
-  status OpportunityStatus
-
-  // Ordered history of status changes, used for statistical tracking of opportunity closure probabilities
-  statusHistory OpportunityStatus[]
-
-  /// @jointable(User, userRelation)
-  /// @ai-field
-  teamMembers UserOpportunityJoin[]
-  /// @ai-field(Activities related to this opportunity)
-  activities  Activity[]
-  /// @ai-field(The products this opportunity is related to)
-  products    OpportunityProduct[]
-
-  /// @@soft-delete
-  deleted   Boolean   @default(false)
-  deletedAt DateTime?
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
-  events ContactTimelineEvent[]
-  notes  Note[]
-
-  /// @wrapper-ignore
-  expectedValue Float
-
-  @@index([title])
-  @@index([status])
-  @@index([expectedCloseDate])
-  @@index([actualCloseDate])
-  @@index([tenetId])
-  @@index([deleted])
-  @@map("opportunities")
-  @@schema("crm")
-}
-
-model ContactOpportunityJoin {
-  /// @@wrapper-ignore
-  contactId       Bytes
-  contactRelation Contact @relation(fields: [contactId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  opportunityId       Bytes
-  opportunityRelation Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@id([contactId, opportunityId])
-  @@map("contact_opportunity_join")
   @@schema("crm")
 }
 
@@ -1167,124 +1074,6 @@ enum OpportunityStatus {
   LOST
   CANCELLED
 
-  @@schema("crm")
-}
-
-model UserOpportunityJoin {
-  /// @@wrapper-ignore
-  userId       Bytes
-  userRelation User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  opportunityId       Bytes
-  opportunityRelation Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  @@id([userId, opportunityId])
-  @@map("user_opportunity_join")
-  @@schema("crm")
-}
-
-model OpportunityProduct {
-  /// @@ai-enabled
-  id Bytes @id
-
-  /// @ai-field
-  price Float // Usually just uses the product's default price
-  /// @ai-field(Display order)
-  order Int
-
-  /// @ai-field
-  commission Float
-
-  opportunityId Bytes
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  productTypeId Bytes
-  productType   ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([opportunityId])
-  @@index([productTypeId])
-  @@index([order])
-  @@map("opportunity_product")
-  @@schema("crm")
-}
-
-model ProductType {
-  /// @@ai-enabled
-  id          Bytes   @id
-  /// @ai-field
-  title       String
-  /// @ai-field
-  description String?
-
-  /// @ai-field
-  defaultCommission Float
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /// @ai-field(Opportunities that depend on this product)
-  opportunities OpportunityProduct[]
-
-  tenet   Tenet @relation(fields: [tenetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tenetId Bytes
-
-  @@index([tenetId])
-  @@index([title])
-  @@map("products")
-  @@schema("crm")
-}
-
-model Log {
-  id            Bytes    @id
-  /// @uniqueEncrypted
-  userEmail     String? // Encrypted email for logging purposes
-  tenetId       Bytes?
-  tenet         Tenet?   @relation(fields: [tenetId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  message       String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  severity      LogLevel @default(INFO)
-  /// @encrypted
-  stacktrace    String? // Encrypted, for error logs
-  /// @uniqueEncrypted
-  source        String? // Encrypted source of the log
-  /// @uniqueEncrypted
-  secureDetails String? // Encrypted details for security logs
-
-  @@index([createdAt])
-  @@index([message])
-  @@index([severity])
-  @@index([tenetId])
-  @@map("logs")
-  @@schema("crm")
-}
-
-// If there token is in this table, it is still valid. Otherwise, it is invalidated.
-model Token {
-  id        Bytes    @id
-  userId    Bytes
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  refresh   Boolean  @default(false)
-
-  @@index([userId])
-  @@map("tokens")
-  @@schema("crm")
-}
-
-model TZData {
-  /// @@wrapper-ignore
-  id           Int    @id @default(autoincrement())
-  name         String
-  provinceName String
-  countryCode  String @db.VarChar(2)
-  tz           String
-
-  @@unique([name, provinceName, countryCode], name: "tz_data_name_province_country_unique")
-  @@map("tz_data")
   @@schema("crm")
 }
 
@@ -1306,44 +1095,34 @@ enum ActivityPriority {
   @@schema("crm")
 }
 
-// If the activity is a task or schedule item, what type is it?
 enum TaskScheduleType {
   /// @@ai-enum-description(Describes the subtype of task or scheduled activities)
   COMMUNICATION
-  // TYPES OF COMMUNICATION
   COMMUNICATION_CALL
   COMMUNICATION_CALL_OUTBOUND
   COMMUNICATION_CALL_INBOUND
   COMMUNICATION_MESSAGE
   COMMUNICATION_EMAIL
-
   MEETING
-  // Types of Meetings
   MEETING_VIRTUAL
   MEETING_IN_PERSON
   MEETING_CLIENT
   MEETING_INTERNAL
   MEETING_PERSONAL
-
-  FINANCIAL_PLANNING // Financial Planning
-  // Types of financial planning
+  FINANCIAL_PLANNING
   FINANCIAL_PLANNING_PORTFOLIO_REVIEW
   FINANCIAL_PLANNING_INVESTMENT_STRATEGY
   FINANCIAL_PLANNING_TAX_PLANNING
   FINANCIAL_PLANNING_ESTATE_PLANNING
   FINANCIAL_PLANNING_RETIREMENT_PLANNING
   FINANCIAL_PLANNING_RISK_ASSESSMENT
-
   TASK
-  // "Tasks"
   TASK_ADMIN
   TASK_COMPLIANCE_CHECK
   TASK_DOCUMENT_PREPARATION
   TASK_PAPERWORK
   TASK_TODO
-
   HOLD
-  // "Holds"
   HOLD_PRIVATE
   HOLD_BLOCKED
   HOLD_TENTATIVE
@@ -1389,17 +1168,16 @@ enum ContactStatus {
   CLIENT
   LEAD
   OFF
-  PERM_OFF // Permanently off, never service again
+  PERM_OFF
   PROSPECT
-  STRATEGIC_PARTNER // They refer to you, you refer to them
-  PLAN_PARTICIPANT // 401k plan participant
+  STRATEGIC_PARTNER
+  PLAN_PARTICIPANT
   OTHER
 
   @@schema("crm")
 }
 
 enum AccessGroup {
-  /// @@ai-disabled
   SYSADMIN
   ADMIN
   CLIENT
@@ -1422,12 +1200,10 @@ enum ImportantDateType {
   RETIREMENT
   BIRTHDAY
 
-  // Will eventually add more types and a "custom" type for custom dates
   @@schema("crm")
 }
 
 enum LogLevel {
-  /// @@server
   DEBUG
   INFO
   WARNING
@@ -1438,7 +1214,6 @@ enum LogLevel {
 }
 
 enum HouseholdRelationshipStatus {
-  /// @@ai-enum-description(Describes the relationship status of a household member to the head of household)
   HEAD_OF_HOUSEHOLD
   SPOUSE
   SON
@@ -1469,9 +1244,7 @@ enum CompanyRelationshipStatus {
   @@schema("crm")
 }
 
-//  const lifecycleStages = ["Accumulation", "Pre-Retirement", "Retirement", "Semi Retired", "Not Assigned", "Pre-Investment", "Legacy"]
 enum LifecycleStage {
-  /// @@ai-enum-description(Describes the investment lifecycle stage of a contact)
   ACCUMULATION
   PRE_RETIREMENT
   RETIREMENT
@@ -1483,132 +1256,11 @@ enum LifecycleStage {
   @@schema("crm")
 }
 
-// Office roles
 enum Role {
-  /// @@ai-enum-description(Describes the role of a client user)
   COMPUTER_OPERATOR
   ADVISOR
   SERVICE_ASSISTANT
   SALES_ASSISTANT
 
   @@schema("crm")
-}
-
-// Object for unit testing
-model TestObject {
-  id Bytes @id
-
-  required  String
-  persisted String?
-
-  wrapped WrappedObject[]
-
-  /// @jointable(JoinedObject1, joinedObjectRelation)
-  /// @join(joinProperty, joinProperty1)
-  join1 JoinTestObject[]
-
-  /// @jointable(JoinedObject2, joinedObjectRelation)
-  /// @join(joinProperty, joinProperty2)
-  /// @joinid(joinId)
-  join2 JoinTestObject2[]
-
-  @@schema("tests")
-}
-
-model WrappedObject {
-  id Bytes @id
-
-  persisted String?
-
-  testObject   TestObject @relation(fields: [testObjectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  testObjectId Bytes
-
-  @@schema("tests")
-}
-
-model JoinTestObject {
-  /// @@wrapper-ignore
-
-  testObjectId       Bytes
-  testObjectRelation TestObject @relation(fields: [testObjectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  joinedObjectId       Bytes
-  joinedObjectRelation JoinedObject1 @relation(fields: [joinedObjectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  joinProperty String
-
-  @@id([testObjectId, joinedObjectId])
-  @@schema("tests")
-}
-
-// Has explicit ID field
-model JoinTestObject2 {
-  /// @@wrapper-ignore
-  id Bytes @id
-
-  testObjectId       Bytes
-  testObjectRelation TestObject @relation(fields: [testObjectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  joinedObjectId       Bytes
-  joinedObjectRelation JoinedObject2 @relation(fields: [joinedObjectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  joinProperty String
-
-  @@schema("tests")
-}
-
-model JoinedObject1 {
-  id Bytes @id
-
-  persisted String?
-
-  /// @jointable(TestObject, testObjectRelation)
-  /// @join(joinProperty, joinProperty)
-  testObjects JoinTestObject[]
-
-  @@schema("tests")
-}
-
-model JoinedObject2 {
-  id Bytes @id
-
-  persisted String?
-
-  /// @jointable(TestObject, testObjectRelation)
-  /// @join(joinProperty, joinProperty)
-  /// @joinid(joinId)
-  testObjects JoinTestObject2[]
-
-  @@schema("tests")
-}
-
-model JoinSelfReference {
-  /// @@wrapper-ignore
-  id Bytes @id
-
-  source   SelfReferencialJoinModel @relation(name: "source", fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  sourceId Bytes
-
-  target   SelfReferencialJoinModel @relation(name: "target", fields: [targetId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  targetId Bytes
-
-  joinProperty String
-
-  @@schema("tests")
-}
-
-model SelfReferencialJoinModel {
-  id Bytes @id
-
-  /// @jointable(SelfReferencialJoinModel, target)
-  /// @join(joinProperty, joinProperty)
-  /// @joinid(joinId)
-  joinsAsSource JoinSelfReference[] @relation(name: "source")
-
-  /// @jointable(SelfReferencialJoinModel, source)
-  /// @join(joinProperty, joinProperty)
-  /// @joinid(joinId)
-  joinsAsTarget JoinSelfReference[] @relation(name: "target")
-
-  @@schema("tests")
 }
