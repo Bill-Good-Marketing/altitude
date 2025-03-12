@@ -6,7 +6,7 @@ import {API} from "~/util/api/ApiResponse";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
-const model = openai('gpt-4o');
+const model = openai('gpt-4o-mini');
 
 export async function POST(req: Request) {
     const user = await getAuthSession();

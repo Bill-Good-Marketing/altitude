@@ -18,16 +18,16 @@ import {
     OpportunityStatus,
     PhoneType,
     TaskScheduleType
-} from "~/common/enum/enumerations";
-import {Tenet} from "~/db/sql/models/Tenet";
-import {User} from "~/db/sql/models/User";
+} from "./src/common/enum/enumerations";
+import {Tenet} from "./src/db/sql/models/Tenet";
+import {User} from "./src/db/sql/models/User";
 import * as fs from "node:fs";
-import {Contact} from "~/db/sql/models/Contact";
-import {ImportantDate} from "~/db/sql/models/ImportantDate";
-import {Address} from "~/db/sql/models/Address";
-import {ContactPhone} from "~/db/sql/models/ContactPhone";
-import {ContactEmail} from "~/db/sql/models/ContactEmail";
-import {Activity} from "~/db/sql/models/Activity";
+import {Contact} from "./src/db/sql/models/Contact";
+import {ImportantDate} from "./src/db/sql/models/ImportantDate";
+import {Address} from "./src/db/sql/models/Address";
+import {ContactPhone} from "./src/db/sql/models/ContactPhone";
+import {ContactEmail} from "./src/db/sql/models/ContactEmail";
+import {Activity} from "./src/db/sql/models/Activity";
 import {differenceInDays, differenceInHours, differenceInMinutes} from "date-fns";
 import {ContactTimelineEvent} from "./src/db/sql/models/ContactTimelineEvent";
 import {ActivityWaypoint} from "./src/db/sql/models/ActivityWaypoint";

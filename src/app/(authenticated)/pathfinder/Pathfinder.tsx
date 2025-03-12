@@ -1,900 +1,727 @@
-"use client";
-
-// 1) Add minimal definitions for SpeechRecognition & event types
-declare global {
-  interface SpeechRecognition {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-
-    // Match the type from @types/dom-speech-recognition
-    onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
-
-    start(): void;
-    stop(): void;
-    // ... add more if needed
-  }
-
-  // Minimal shape for the speech event
-  interface SpeechRecognitionEvent extends Event {
-    readonly results: SpeechRecognitionResultList;
-    readonly resultIndex: number;
-  }
-  interface SpeechRecognitionResult {
-    readonly isFinal: boolean;
-    readonly length: number;
-    item(index: number): SpeechRecognitionAlternative;
-    [index: number]: SpeechRecognitionAlternative;
-  }
-  interface SpeechRecognitionAlternative {
-    readonly transcript: string;
-    readonly confidence: number;
-  }
-  interface SpeechRecognitionResultList {
-    readonly length: number;
-    item(index: number): SpeechRecognitionResult;
-    [index: number]: SpeechRecognitionResult;
-  }
-
-  // Reference to the constructor
-  interface SpeechRecognitionConstructor {
-    new (): SpeechRecognition;
-  }
-
-  // Now the window properties
-  interface Window {
-    SpeechRecognition: SpeechRecognitionConstructor;
-    webkitSpeechRecognition: SpeechRecognitionConstructor;
-  }
-}
-
-import React, { useEffect, useRef, useState } from "react";
+'use client';
+import React, {useEffect, useRef, useState} from "react";
+import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "~/components/ui/drawer";
+import {useChat} from "ai/react";
+import {PlaceholdersAndVanishInput} from "~/components/ui/placeholder-and-vanish-input";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "~/components/ui/drawer";
-import { useChat } from "ai/react";
-import { PlaceholdersAndVanishInput } from "~/components/ui/placeholder-and-vanish-input";
-import {
-  Calendar,
-  ChartBar,
-  ChevronDown,
-  Edit,
-  FileText,
-  FolderPlus,
-  Lightbulb,
-  Maximize2,
-  Mic,
-  Minimize2,
-  Plus,
-  RotateCw,
-  Save,
-  Settings2,
-  Smile,
-  Trash,
-  Trash2,
-  TrendingUp,
-  Upload,
-  UserCircle,
-  UserCircle2,
-  Users,
-  X,
+    Calendar,
+    ChartBar,
+    ChevronDown,
+    Edit,
+    FileText,
+    FolderPlus,
+    Lightbulb,
+    Maximize2,
+    Mic,
+    Minimize2,
+    Plus, RotateCw,
+    Save,
+    Settings2,
+    Smile,
+    Trash,
+    Trash2,
+    TrendingUp,
+    Upload,
+    UserCircle,
+    UserCircle2,
+    Users,
+    X
 } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Tool } from "~/app/(authenticated)/pathfinder/Tool";
+import {Button} from "~/components/ui/button";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "~/components/ui/tooltip";
+import {Card, CardContent, CardHeader, CardTitle} from "~/components/ui/card";
+import {Tool} from "~/app/(authenticated)/pathfinder/Tool";
 import classNames from "classnames";
-import { Message } from "ai";
+import {Message} from "ai";
 import Markdown from "react-markdown";
-import { useAIContext } from "~/app/(authenticated)/pathfinder/AIContext";
-import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { useStateRef } from "~/hooks/use-state-ref";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
-import { Label } from "~/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { Input } from "~/components/ui/input";
-import { toast } from "sonner";
+import {useAIContext} from "~/app/(authenticated)/pathfinder/AIContext";
+import {usePathname} from "next/navigation";
+import {motion} from "framer-motion";
+import {useStateRef} from "~/hooks/use-state-ref";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "~/components/ui/dropdown-menu";
+import {RadioGroup, RadioGroupItem} from "~/components/ui/radio-group";
+import {Label} from "~/components/ui/label";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "~/components/ui/select";
+import {Input} from "~/components/ui/input";
+import {toast} from "sonner";
 
-// Minimal interface(s) for your requests
 interface CommonRequest {
-  id: number;
-  text: string;
-  icon: string | null;
+    id: number
+    text: string
+    icon: string | null
 }
+
 interface CommonRequestGroup {
-  id: number;
-  name: string;
-  requests: CommonRequest[];
+    id: number;
+    name: string;
+    requests: CommonRequest[];
 }
 
 export function Pathfinder() {
-  const { contactId, contactName } = useAIContext();
-  const path = usePathname();
+    const {contactId, contactName} = useAIContext();
+    const path = usePathname();
 
-  const [visible, setVisible] = useState(false);
-  const [canSubmit, setCanSubmit] = useState(true);
-  const [speechRecognitionEnabled, setSpeechRecognitionEnabled] = useState(false);
+    const [visible, setVisible] = React.useState(false)
+    const [canSubmit, setCanSubmit] = React.useState(true)
+    const [speechRecognitionEnabled, setSpeechRecognitionEnabled] = useState(false)
 
-  // Some example requests
-  const [commonRequestGroups, setCommonRequestGroups] = useState<
-    CommonRequestGroup[]
-  >([
-    {
-      id: 1,
-      name: "General",
-      requests: [
-        { id: 1, text: "What do I need to do today?", icon: "Calendar" },
-        { id: 5, text: "What do I need to do for this client today?", icon: "Calendar" },
-        { id: 2, text: "Generate a report", icon: "FileText" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Analytics",
-      requests: [{ id: 3, text: "Analyze market trends", icon: "TrendingUp" }],
-    },
-    {
-      id: 3,
-      name: "Clients",
-      requests: [{ id: 4, text: "Update client information", icon: "Users" }],
-    },
-  ]);
-  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
-  const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const [speechToTextPreValue, setSpeechToTextPreValue] = useState("");
-  const speechToTextPreValueRef = useStateRef(speechToTextPreValue);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isPersonalitySelectorOpen, setIsPersonalitySelectorOpen] = useState(false);
+    // TODO: Make this persisted
+    const [commonRequestGroups, setCommonRequestGroups] = useState<CommonRequestGroup[]>([
+        {
+            id: 1,
+            name: "General",
+            requests: [
+                {id: 1, text: 'What do I need to do today?', icon: 'Calendar'},
+                {id: 5, text: 'What do I need to do for this client today?', icon: 'Calendar'},
+                {id: 2, text: 'Generate a report', icon: 'FileText'},
+            ]
+        },
+        {
+            id: 2,
+            name: "Analytics",
+            requests: [
+                {id: 3, text: 'Analyze market trends', icon: 'TrendingUp'},
+            ]
+        },
+        {
+            id: 3,
+            name: "Clients",
+            requests: [
+                {id: 4, text: 'Update client information', icon: 'Users'},
+            ]
+        },
+    ])
+    const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
+    const [isListening, setIsListening] = useState(false)
+    const [recognition, setRecognition] = useState<SpeechRecognition | null>(null)
+    const [speechToTextPreValue, setSpeechToTextPreValue] = useState('')
+    const speechToTextPreValueRef = useStateRef(speechToTextPreValue)
+    const [isFullscreen, setIsFullscreen] = useState(false)
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [isPersonalitySelectorOpen, setIsPersonalitySelectorOpen] = useState(false)
 
-  // Chat code from ai/react
-  const regex = /^\/contacts\/([0-9a-f]{26})\/?$/;
-  const { messages, input, append, setInput, setMessages, stop } = useChat({
-    body: {
-      tzOffset: new Date().getTimezoneOffset(),
-      contact: regex.test(path) ? { id: contactId, fullName: contactName } : null,
-    },
-    onError: (error) => {
-      console.error(error);
-      toast.error(error.message);
-    },
-  });
+    // const [isSpeaking, setIsSpeaking] = useState(false)
 
-  // Basic toggling
-  const handleVoiceToText = () => {
-    setIsListening((prev) => !prev);
-  };
-
-  // Start or stop speech recognition in response to isListening
-  useEffect(() => {
-    if (isListening) {
-      const sr = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      setSpeechToTextPreValue(input); // store current input
-      sr.continuous = true;
-      sr.interimResults = true;
-      sr.lang = "en-US";
-
-      sr.onresult = (event: SpeechRecognitionEvent) => {
-        let interim_transcript = "";
-
-        for (const result of event.results) {
-          interim_transcript += result[0].transcript;
-        }
-
-        // Basic voice formatting
-        interim_transcript = interim_transcript
-          .replace(/ comma/gi, ",")
-          .replace(/ period/gi, ".")
-          .replace(/ question mark/gi, "?")
-          .replace(/ exclamation (point|mark)/gi, "!")
-          .replace(/ new line/gi, "\n")
-          .replace(/ new paragraph/gi, "\n")
-          .replace(/ semicolon/gi, ";")
-          .replace(/ colon/gi, ":")
-          .replace(/ hyphen/gi, "-")
-          .replace(/ dash/gi, "-")
-          .replace(/ underscore/gi, "_");
-
-        if (interim_transcript.length > 0) {
-          // Merge partial results with previously typed input
-          setInput(speechToTextPreValueRef.current + interim_transcript);
-        }
-      };
-
-      sr.start();
-      setRecognition(sr);
-    } else {
-      // Stopped listening
-      if (recognition) {
-        recognition.stop();
-        setRecognition(null);
-      }
-      setSpeechToTextPreValue(input);
+    const handleVoiceToText = () => {
+        setIsListening(!isListening)
+        // Implement voice-to-text functionality here
     }
-  }, [isListening]);
 
-  // Enable speech + toggle drawer with ` or ~
-  useEffect(() => {
-    setSpeechRecognitionEnabled(true);
+    useEffect(() => {
+        if (isListening) {
+            const sr = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            setSpeechToTextPreValue(input)
+            sr.continuous = true;
+            sr.interimResults = true;
+            sr.lang = 'en-US';
+            sr.onresult = (event) => {
+                let interim_transcript = '';
 
-    const listener = (event: KeyboardEvent) => {
-      // Toggle the drawer with ` or ~ (except if typing in the input)
-      if (
-        (event.key === "`" || event.key === "~") &&
-        document.activeElement?.getAttribute("id") !== "pathfinder-input"
-      ) {
-        event.preventDefault();
-        setVisible((prev) => !prev);
-      }
-    };
-    window.addEventListener("keypress", listener);
-    return () => {
-      window.removeEventListener("keypress", listener);
-    };
-  }, []);
+                for (const item of event.results) {
+                    interim_transcript += item[0].transcript;
+                }
 
-  // Merge successive "tool" messages into one "AI Actions"
-  const _messages: Message[] = [];
-  for (const message of messages) {
-    if (_messages.length === 0 || message.toolInvocations == null) {
-      _messages.push(message);
-    } else {
-      const lastMessage = _messages[_messages.length - 1];
-      if (lastMessage.toolInvocations != null && message.toolInvocations != null) {
-        lastMessage.toolInvocations.push(...message.toolInvocations);
-      } else {
-        _messages.push({
-          ...message,
-          toolInvocations: [...(message.toolInvocations || [])],
-        });
-      }
-    }
-  }
+                interim_transcript = interim_transcript.replace(/ comma/gi, ",").replace(/ period/gi, ".").replace(/ question mark/gi, "?").replace(/ exclamation point/gi, "!").replace(/ exclamation mark/gi, "!")
+                    .replace(/ new line/gi, "\n").replace(/ new paragraph/, "\n").replace(/ semicolon/gi, ";").replace(/ colon/gi, ":").replace(/ hyphen/gi, "-").replace(/ dash/gi, "-").replace(/ underscore/gi, "_");
 
-  // Scroll logic
-  const messageBoxRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    messageBoxRef.current?.scrollTo({
-      top: messageBoxRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
-
-  // Upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("File uploaded:", file.name);
-      // Implement actual upload logic here
-    }
-  };
-
-  // Groups
-  const handleGroupChange = (index: number) => {
-    setCurrentGroupIndex(index);
-  };
-
-  const getIcon = (iconName: string | null) => {
-    switch (iconName) {
-      case "Calendar":
-        return <Calendar className="h-4 w-4 mr-2 text-blue-400" />;
-      case "FileText":
-        return <FileText className="h-4 w-4 mr-2 text-green-400" />;
-      case "TrendingUp":
-        return <TrendingUp className="h-4 w-4 mr-2 text-yellow-400" />;
-      case "Users":
-        return <Users className="h-4 w-4 mr-2 text-purple-400" />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <>
-      <Drawer open={visible} onOpenChange={setVisible}>
-        <DrawerContent
-          className={classNames(
-            "mx-auto !select-auto bg-gradient-to-br dark:from-zinc-950 dark:to-zinc-900 from-gray-50 to-gray-100 !transition-all duration-300 ease-in-out",
-            {
-              "w-[98%] h-[99%]": isFullscreen,
-              "w-[40vw] h-[80%]": !isFullscreen,
+                if (interim_transcript.length > 0) {
+                    setInput(speechToTextPreValueRef.current + interim_transcript);
+                }
+            };
+            sr.start();
+            setRecognition(sr);
+        } else {
+            if (recognition) {
+                recognition.stop();
+                setRecognition(null);
             }
-          )}
-        >
-          <DrawerHeader>
-            <div className="flex items-center justify-between">
-              <DrawerTitle>Pathfinder AI</DrawerTitle>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsPersonalitySelectorOpen(true)}
-                >
-                  <UserCircle2 className="h-6 w-6" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsDrawerOpen(true)}
-                >
-                  <Settings2 className="h-6 w-6" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="h-6 w-6" />
-                  ) : (
-                    <Maximize2 className="h-6 w-6" />
-                  )}
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setVisible(false)}>
-                  <X className="h-6 w-6" />
-                </Button>
-              </div>
-            </div>
-          </DrawerHeader>
+            setSpeechToTextPreValue(input)
+        }
+    }, [isListening]);
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex flex-col items-center mb-4"
-          >
-            <div className="flex items-center justify-center w-full mb-2">
-              <h2 className="text-lg font-semibold mr-2">
-                {commonRequestGroups[currentGroupIndex].name}
-              </h2>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {commonRequestGroups.map((group, index) => (
-                    <DropdownMenuItem key={group.id} onSelect={() => handleGroupChange(index)}>
-                      {group.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              {commonRequestGroups[currentGroupIndex].requests.map((request) => (
-                <Button
-                  key={request.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (!canSubmit) return;
-                    setCanSubmit(false);
-                    setIsListening(false);
-                    append({
-                      role: "user",
-                      content: request.text,
-                    }).then(() => {
-                      setCanSubmit(true);
-                    });
-                  }}
-                  className="flex items-center
-                    bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
-                    dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
-                    transition-colors"
-                >
-                  {getIcon(request.icon)}
-                  <span className="truncate">{request.text}</span>
-                </Button>
-              ))}
-            </div>
-          </motion.div>
+    // const handleVoiceOutput = () => {
+    //     setIsSpeaking(!isSpeaking)
+    //     // Implement voice output functionality here
+    // }
 
-          <div
-            className={classNames("items-center mb-4", {
-              "h-[99%]": isFullscreen,
-              "h-[80%]": !isFullscreen,
-            })}
-          >
-            <div
-              className="overflow-y-auto low-profile-scrollbar px-4 space-y-4 h-[calc(92%-3rem)]"
-              ref={messageBoxRef}
-            >
-              {_messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className={classNames("flex", {
-                    "w-fit": message.toolInvocations != null,
-                    "justify-end": message.role === "user",
-                    "justify-start": message.role !== "user",
-                  })}
-                >
-                  {message.toolInvocations != null ? (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>AI Actions</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {message.toolInvocations.map((toolInvocation) => (
-                          <Tool
-                            key={toolInvocation.toolCallId}
-                            name={toolInvocation.toolName}
-                            args={toolInvocation.args}
-                            result={
-                              toolInvocation.state === "result"
-                                ? toolInvocation.result
-                                : undefined
-                            }
-                            state={toolInvocation.state}
-                          />
-                        ))}
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div
-                      className={classNames("p-3 rounded-lg", {
-                        "bg-blue-600 text-white": message.role === "user",
-                        "dark:bg-zinc-700 bg-zinc-300": message.role !== "user",
-                        "max-w-[50%]": isFullscreen,
-                        "max-w-[60%]": !isFullscreen,
-                      })}
-                    >
-                      <b>{message.role === "user" ? "User: " : "AI: "}</b>
-                      {message.role !== "user" ? (
-                        <div className={"space-y-2 ai-markdown"}>
-                          <Markdown>{message.content}</Markdown>
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (file) {
+            // Implement file upload and processing here
+            console.log('File uploaded:', file.name)
+        }
+    }
+
+    const handleGroupChange = (index: number) => {
+        setCurrentGroupIndex(index)
+    }
+
+    const getIcon = (iconName: string | null) => {
+        switch (iconName) {
+            case 'Calendar':
+                return <Calendar className="h-4 w-4 mr-2 text-blue-400"/>
+            case 'FileText':
+                return <FileText className="h-4 w-4 mr-2 text-green-400"/>
+            case 'TrendingUp':
+                return <TrendingUp className="h-4 w-4 mr-2 text-yellow-400"/>
+            case 'Users':
+                return <Users className="h-4 w-4 mr-2 text-purple-400"/>
+            default:
+                return null
+        }
+    }
+
+    const regex = /^\/contacts\/([0-9a-f]{26})\/?$/
+
+    const {messages, input, append, setInput, setMessages, stop} = useChat({
+        body: {
+            tzOffset: new Date().getTimezoneOffset(),
+            contact: regex.test(path) ? {id: contactId, fullName: contactName} : null
+        },
+        onError: (error) => {
+            console.error(error)
+            toast.error(error.message)
+        },
+        // streamProtocol: 'text'
+    });
+
+    useEffect(() => {
+        setSpeechRecognitionEnabled(true)
+
+        const listener = (event: KeyboardEvent) => {
+            if ((event.key === '`' || event.key === '~') && document.activeElement?.getAttribute('id') !== 'pathfinder-input') {
+                event.preventDefault()
+                setVisible(prev => {
+                    return !prev
+                })
+            }
+        }
+
+        window.addEventListener('keypress', listener)
+
+        return () => {
+            window.removeEventListener('keypress', listener)
+        }
+    }, [])
+
+    // We want to merge successive tool calls into one message
+    const _messages: Message[] = []
+
+    for (const message of messages) {
+        if (_messages.length === 0 || message.toolInvocations == null) {
+            _messages.push(message)
+        } else {
+            const lastMessage = _messages[_messages.length - 1]
+            if (lastMessage.toolInvocations != null) {
+                lastMessage.toolInvocations.push(...message.toolInvocations)
+            } else {
+                _messages.push({
+                    ...message,
+                    toolInvocations: [...message.toolInvocations]
+                })
+            }
+        }
+    }
+
+    const messageBoxRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        messageBoxRef.current?.scrollTo({
+            top: messageBoxRef.current.scrollHeight,
+            behavior: 'smooth'
+        });
+    }, [messages]);
+
+    return <>
+        <Drawer open={visible} onOpenChange={setVisible}>
+            <DrawerContent className={classNames(
+                'mx-auto !select-auto bg-gradient-to-br dark:from-zinc-950 dark:to-zinc-900 from-gray-50 to-gray-100 !transition-all duration-300 ease-in-out',
+                {
+                    'w-[98%] h-[99%]': isFullscreen,
+                    'w-[40vw] h-[80%]': !isFullscreen
+                }
+            )}>
+                <DrawerHeader>
+                    <div className={'flex items-center justify-between'}>
+                        <DrawerTitle>Pathfinder AI</DrawerTitle>
+                        <div className="flex items-center space-x-2">
+                            <Button variant="ghost" size="icon" onClick={() => setIsPersonalitySelectorOpen(true)}>
+                                <UserCircle2 className="h-6 w-6"/>
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(true)}>
+                                <Settings2 className="h-6 w-6"/>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                            >
+                                {isFullscreen ? (
+                                    <Minimize2 className="h-6 w-6"/>
+                                ) : (
+                                    <Maximize2 className="h-6 w-6"/>
+                                )}
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setVisible(false)}>
+                                <X className="h-6 w-6"/>
+                            </Button>
                         </div>
-                      ) : (
-                        message.content
-                      )}
                     </div>
-                  )}
+                </DrawerHeader>
+
+                <motion.div
+                    initial={{opacity: 0, y: 20}}
+                    animate={{opacity: 1, y: 0}}
+                    transition={{duration: 0.5, delay: 0.2}}
+                    className="flex flex-col items-center mb-4"
+                >
+                    <div className="flex items-center justify-center w-full mb-2">
+                        <h2 className="text-lg font-semibold mr-2">{commonRequestGroups[currentGroupIndex].name}</h2>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                    <ChevronDown className="h-4 w-4"/>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                {commonRequestGroups.map((group, index) => (
+                                    <DropdownMenuItem key={group.id} onSelect={() => handleGroupChange(index)}>
+                                        {group.name}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {commonRequestGroups[currentGroupIndex].requests.map((request) => (
+                            <Button
+                                key={request.id}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    if (!canSubmit) {
+                                        return
+                                    }
+                                    setCanSubmit(false)
+                                    setIsListening(false);
+                                    append({
+                                        role: 'user',
+                                        content: request.text
+                                    }).then(() => {
+                                        setCanSubmit(true)
+                                    })
+                                }}
+                                className="flex items-center
+                                bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
+                                dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
+                                transition-colors"
+                            >
+                                {getIcon(request.icon)}
+                                <span className="truncate">{request.text}</span>
+                            </Button>
+                        ))}
+                    </div>
                 </motion.div>
-              ))}
-            </div>
-            <div className="mt-4">
-              <hr className="mb-4" />
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex items-center justify-center"
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant={"ghost"} size={"icon"} onClick={() => setMessages([])}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Clear conversation</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
 
-                <PlaceholdersAndVanishInput
-                  id={"pathfinder-input"}
-                  placeholders={["Something or other...", "Another thing...", "Something else..."]}
-                  onChange={setInput}
-                  value={input}
-                  onSubmit={() => {
-                    if (!canSubmit) return;
-                    setCanSubmit(false);
-                    setIsListening(false);
-                    append({
-                      role: "user",
-                      content: input,
-                    }).then(() => {
-                      setCanSubmit(true);
-                    });
-                  }}
-                />
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={"ghost"}
-                        size={"icon"}
-                        onClick={() => {
-                          stop();
-                          setCanSubmit(false);
-                          const messagesCopy = [..._messages];
-                          while (
-                            messagesCopy.length > 0 &&
-                            messagesCopy[messagesCopy.length - 1].role !== "user"
-                          ) {
-                            messagesCopy.pop();
-                          }
-                          const lastMessage = messagesCopy.pop();
-                          if (lastMessage) {
-                            setMessages(messagesCopy);
-                            append({
-                              role: "user",
-                              content: lastMessage.content,
-                            }).then(() => {
-                              setCanSubmit(true);
-                            });
-                            toast.info("Resending last message");
-                          } else {
-                            setCanSubmit(true);
-                            toast.warning("No messages to resend");
-                          }
-                        }}
-                      >
-                        <RotateCw className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Resend last message</TooltipContent>
-                  </Tooltip>
+                <div className={classNames('items-center mb-4', {
+                    'h-[99%]': isFullscreen,
+                    'h-[80%]': !isFullscreen
+                })}>
+                    <div className={'overflow-y-auto low-profile-scrollbar px-4 space-y-4 h-[calc(92%-3rem)]'} ref={messageBoxRef}>
+                        {_messages.map(message => (
+                            <motion.div
+                                key={message.id}
+                                initial={{opacity: 0, y: 20}}
+                                animate={{opacity: 1, y: 0}}
+                                transition={{duration: 0.5}}
+                                className={classNames('flex', {
+                                    'w-fit': message.toolInvocations != null,
+                                    'justify-end': message.role === 'user',
+                                    'justify-start': message.role !== 'user'
+                                })}>
+                                {message.toolInvocations != null ? <Card>
+                                    <CardHeader>
+                                        <CardTitle>AI Actions</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {message.toolInvocations.map(toolInvocation => {
+                                            return <Tool key={toolInvocation.toolCallId} name={toolInvocation.toolName}
+                                                         args={toolInvocation.args}
+                                                         result={toolInvocation.state === 'result' ? toolInvocation.result : undefined}
+                                                         state={toolInvocation.state}/>
+                                        })}
+                                    </CardContent>
+                                </Card> : <div className={classNames('p-3 rounded-lg', {
+                                    'bg-blue-600 text-white': message.role === 'user',
+                                    'dark:bg-zinc-700 bg-zinc-300': message.role !== 'user',
+                                    'max-w-[50%]': isFullscreen,
+                                    'max-w-[60%]': !isFullscreen
+                                })}>
+                                    <b>{message.role === 'user' ? 'User: ' : 'AI: '}</b>
+                                    {message.role !== 'user' ? <div className={'space-y-2 ai-markdown'}>
+                                        <Markdown>{message.content}</Markdown>
+                                    </div> : message.content}
+                                </div>}
+                            </motion.div>
+                        ))}
+                    </div>
+                    <div className={'mt-4'}>
+                        <hr className={'mb-4'}/>
+                        <motion.div
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            transition={{duration: 0.5}}
+                            className={'flex items-center justify-center'}>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant={'ghost'} size={'icon'} onClick={() => setMessages([])}>
+                                            <Trash2 className={'h-4 w-4 text-red-500'}/>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Clear conversation
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <PlaceholdersAndVanishInput
+                                id={'pathfinder-input'}
+                                placeholders={['Something or other...', 'Another thing...', 'Something else...']}
+                                onChange={setInput}
+                                value={input}
+                                onSubmit={() => {
+                                    if (!canSubmit) {
+                                        return
+                                    }
+                                    setCanSubmit(false)
+                                    setIsListening(false);
+                                    append({
+                                        role: 'user',
+                                        content: input
+                                    }).then(() => {
+                                        setCanSubmit(true)
+                                    })
+                                }}
+                            />
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant={'ghost'} size={'icon'} onClick={() => {
+                                            stop()
+                                            setCanSubmit(false)
+                                            const messages = [..._messages];
 
-                  {speechRecognitionEnabled && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleVoiceToText}>
-                          <Mic className={`h-4 w-4 ${isListening ? "text-red-500" : ""}`} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {isListening ? "Stop Listening" : "Listen"}
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
+                                            while (messages.length > 0 && messages[messages.length - 1].role !== 'user') {
+                                                messages.pop()
+                                            }
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <label htmlFor="file-upload" className="cursor-pointer">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => document.getElementById("file-upload")?.click()}
-                        >
-                          <Upload className="h-4 w-4" />
-                        </Button>
-                        <input
-                          id="file-upload"
-                          type="file"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                        />
-                      </label>
-                    </TooltipTrigger>
-                    <TooltipContent>Upload a file</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </motion.div>
-            </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
+                                            const lastMessage = messages.pop()
+                                            if (lastMessage) {
+                                                setMessages(messages)
+                                                append({
+                                                    role: 'user',
+                                                    content: lastMessage.content
+                                                }).then(() => {
+                                                    setCanSubmit(true)
+                                                })
+                                                toast.info('Resending last message')
+                                            } else {
+                                                setCanSubmit(true)
+                                                toast.warning('No messages to resend')
+                                            }
+                                        }}>
+                                            <RotateCw className="h-4 w-4"/>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Resend last message
+                                    </TooltipContent>
+                                </Tooltip>
+                                {speechRecognitionEnabled && <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={handleVoiceToText}>
+                                            <Mic className={`h-4 w-4 ${isListening ? 'text-red-500' : ''}`}/>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {isListening ? 'Stop Listening' : 'Listen'}
+                                    </TooltipContent>
+                                </Tooltip>}
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <label htmlFor="file-upload" className="cursor-pointer">
+                                            <Button variant="ghost" size="icon"
+                                                    onClick={() => document.getElementById('file-upload')?.click()}>
+                                                <Upload className="h-4 w-4"/>
+                                            </Button>
+                                            <input
+                                                id="file-upload"
+                                                type="file"
+                                                className="hidden"
+                                                onChange={handleFileUpload}
+                                            />
+                                        </label>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Upload a file
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </motion.div>
+                    </div>
+                </div>
+            </DrawerContent>
+        </Drawer>
 
-      <ConfigDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        isFullScreen={isFullscreen}
-        commonRequestGroups={commonRequestGroups}
-        onUpdateCommonRequestGroups={setCommonRequestGroups}
-      />
-      <PersonalitySelector
-        isOpen={isPersonalitySelectorOpen}
-        onClose={() => setIsPersonalitySelectorOpen(false)}
-        isFullScreen={isFullscreen}
-      />
+        <ConfigDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} isFullScreen={isFullscreen}
+                      commonRequestGroups={commonRequestGroups} onUpdateCommonRequestGroups={setCommonRequestGroups}/>
+        <PersonalitySelector isOpen={isPersonalitySelectorOpen} onClose={() => setIsPersonalitySelectorOpen(false)}
+                             isFullScreen={isFullscreen}/>
     </>
-  );
 }
 
-// Personality Selector
 type PersonalitySelectorProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  isFullScreen: boolean;
-};
+    isOpen: boolean
+    onClose: () => void
+    isFullScreen: boolean
+}
 
 const personalities = [
-  { id: "professional", name: "Professional", icon: <UserCircle className="h-5 w-5 mr-2" /> },
-  { id: "friendly", name: "Friendly", icon: <Smile className="h-5 w-5 mr-2" /> },
-  { id: "creative", name: "Creative", icon: <Lightbulb className="h-5 w-5 mr-2" /> },
-  { id: "analytical", name: "Analytical", icon: <ChartBar className="h-5 w-5 mr-2" /> },
-];
+    {id: 'professional', name: 'Professional', icon: <UserCircle className="h-5 w-5 mr-2"/>},
+    {id: 'friendly', name: 'Friendly', icon: <Smile className="h-5 w-5 mr-2"/>},
+    {id: 'creative', name: 'Creative', icon: <Lightbulb className="h-5 w-5 mr-2"/>},
+    {id: 'analytical', name: 'Analytical', icon: <ChartBar className="h-5 w-5 mr-2"/>},
+]
 
-function PersonalitySelector({ isOpen, onClose, isFullScreen }: PersonalitySelectorProps) {
-  const [selectedPersonality, setSelectedPersonality] = useState("professional");
+function PersonalitySelector({isOpen, onClose, isFullScreen}: PersonalitySelectorProps) {
+    const [selectedPersonality, setSelectedPersonality] = useState('professional')
 
-  const handleSave = () => {
-    console.log("Selected personality:", selectedPersonality);
-    onClose();
-  };
+    const handleSave = () => {
+        // Implement personality change logic here
+        console.log('Selected personality:', selectedPersonality)
+        onClose()
+    }
 
-  return (
-    <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent
-        className={classNames("mx-auto", {
-          "w-[98%]": isFullScreen,
-          "w-[40vw]": !isFullScreen,
-        })}
-      >
-        <DrawerHeader>
-          <DrawerTitle>Select AI Personality</DrawerTitle>
-        </DrawerHeader>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="p-4 h-full flex flex-col"
-        >
-          <RadioGroup
-            value={selectedPersonality}
-            onValueChange={setSelectedPersonality}
-            className="space-y-2"
-          >
-            {personalities.map((personality) => (
-              <div key={personality.id} className="flex items-center space-x-2">
-                <RadioGroupItem value={personality.id} id={personality.id} />
-                <Label htmlFor={personality.id} className="flex items-center">
-                  {personality.icon}
-                  {personality.name}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save</Button>
-          </div>
-        </motion.div>
-      </DrawerContent>
-    </Drawer>
-  );
+    return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+            <DrawerContent className={classNames('mx-auto', {
+                'w-[98%]': isFullScreen,
+                'w-[40vw]': !isFullScreen
+            })}>
+                <DrawerHeader>
+                    <DrawerTitle>Select AI Personality</DrawerTitle>
+                </DrawerHeader>
+                <motion.div
+                    initial={{opacity: 0}}
+                    animate={{opacity: 1}}
+                    exit={{opacity: 0}}
+                    transition={{duration: 0.3}}
+                    className="p-4 h-full flex flex-col"
+                >
+                    <RadioGroup value={selectedPersonality} onValueChange={setSelectedPersonality}
+                                className="space-y-2">
+                        {personalities.map((personality) => (
+                            <div key={personality.id} className="flex items-center space-x-2">
+                                <RadioGroupItem value={personality.id} id={personality.id}/>
+                                <Label htmlFor={personality.id} className="flex items-center">
+                                    {personality.icon}
+                                    {personality.name}
+                                </Label>
+                            </div>
+                        ))}
+                    </RadioGroup>
+                    <div className="flex justify-end space-x-2 mt-4">
+                        <Button variant="outline" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSave}>
+                            Save
+                        </Button>
+                    </div>
+                </motion.div>
+            </DrawerContent>
+        </Drawer>
+    )
 }
 
-// Config Drawer
 type ConfigDrawerProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  commonRequestGroups: CommonRequestGroup[];
-  onUpdateCommonRequestGroups: (groups: CommonRequestGroup[]) => void;
-  isFullScreen: boolean;
-};
+    isOpen: boolean
+    onClose: () => void
+    commonRequestGroups: CommonRequestGroup[]
+    onUpdateCommonRequestGroups: (groups: CommonRequestGroup[]) => void
+    isFullScreen: boolean
+}
 
-export function ConfigDrawer({
-  isOpen,
-  onClose,
-  commonRequestGroups,
-  onUpdateCommonRequestGroups,
-  isFullScreen,
-}: ConfigDrawerProps) {
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editText, setEditText] = useState("");
-  const [localGroups, setLocalGroups] = useState(commonRequestGroups);
-  const [selectedGroupId, setSelectedGroupId] = useState(
-    commonRequestGroups[0]?.id || 0
-  );
-  const [newGroupName, setNewGroupName] = useState("");
+export default function ConfigDrawer({
+                                         isOpen,
+                                         onClose,
+                                         commonRequestGroups,
+                                         onUpdateCommonRequestGroups,
+                                         isFullScreen
+                                     }: ConfigDrawerProps) {
+    const [editingId, setEditingId] = useState<number | null>(null)
+    const [editText, setEditText] = useState('')
+    const [localGroups, setLocalGroups] = useState(commonRequestGroups)
+    const [selectedGroupId, setSelectedGroupId] = useState(commonRequestGroups[0]?.id || 0)
+    const [newGroupName, setNewGroupName] = useState('')
 
-  useEffect(() => {
-    setLocalGroups(commonRequestGroups);
-  }, [commonRequestGroups]);
-
-  const getIcon = (iconName: string | null) => {
-    switch (iconName) {
-      case "Calendar":
-        return <Calendar className="h-4 w-4 mr-2 text-blue-400" />;
-      case "FileText":
-        return <FileText className="h-4 w-4 mr-2 text-green-400" />;
-      case "TrendingUp":
-        return <TrendingUp className="h-4 w-4 mr-2 text-yellow-400" />;
-      case "Users":
-        return <Users className="h-4 w-4 mr-2 text-purple-400" />;
-      default:
-        return null;
+    const getIcon = (iconName: string | null) => {
+        switch (iconName) {
+            case 'Calendar':
+                return <Calendar className="h-4 w-4 mr-2 text-blue-400"/>
+            case 'FileText':
+                return <FileText className="h-4 w-4 mr-2 text-green-400"/>
+            case 'TrendingUp':
+                return <TrendingUp className="h-4 w-4 mr-2 text-yellow-400"/>
+            case 'Users':
+                return <Users className="h-4 w-4 mr-2 text-purple-400"/>
+            default:
+                return null
+        }
     }
-  };
 
-  const handleEdit = (id: number, text: string) => {
-    setEditingId(id);
-    setEditText(text);
-  };
+    const handleEdit = (id: number, text: string) => {
+        setEditingId(id)
+        setEditText(text)
+    }
 
-  const handleSave = (groupId: number, id: number) => {
-    setLocalGroups((prevGroups) =>
-      prevGroups.map((group) =>
-        group.id === groupId
-          ? {
-              ...group,
-              requests: group.requests.map((req) =>
-                req.id === id ? { ...req, text: editText } : req
-              ),
-            }
-          : group
-      )
-    );
-    setEditingId(null);
-    setEditText("");
-  };
-
-  const handleDelete = (groupId: number, id: number) => {
-    setLocalGroups((prevGroups) =>
-      prevGroups.map((group) =>
-        group.id === groupId
-          ? {
-              ...group,
-              requests: group.requests.filter((req) => req.id !== id),
-            }
-          : group
-      )
-    );
-  };
-
-  const handleAdd = (groupId: number) => {
-    const group = localGroups.find((g) => g.id === groupId);
-    if (group) {
-      const newId = Math.max(...group.requests.map((r) => r.id), 0) + 1;
-      setLocalGroups((prevGroups) =>
-        prevGroups.map((g) =>
-          g.id === groupId
-            ? {
-                ...g,
-                requests: [...g.requests, { id: newId, text: "New Request", icon: null }],
-              }
-            : g
+    const handleSave = (groupId: number, id: number) => {
+        setLocalGroups(prevGroups =>
+            prevGroups.map(group =>
+                group.id === groupId
+                    ? {...group, requests: group.requests.map(req => req.id === id ? {...req, text: editText} : req)}
+                    : group
+            )
         )
-      );
-      handleEdit(newId, "New Request");
+        setEditingId(null)
+        setEditText('')
     }
-  };
 
-  const handleAddGroup = () => {
-    if (newGroupName.trim()) {
-      const newId = Math.max(...localGroups.map((g) => g.id), 0) + 1;
-      setLocalGroups((prevGroups) => [
-        ...prevGroups,
-        { id: newId, name: newGroupName.trim(), requests: [] },
-      ]);
-      setNewGroupName("");
-      setSelectedGroupId(newId);
+    const handleDelete = (groupId: number, id: number) => {
+        setLocalGroups(prevGroups =>
+            prevGroups.map(group =>
+                group.id === groupId
+                    ? {...group, requests: group.requests.filter(req => req.id !== id)}
+                    : group
+            )
+        )
     }
-  };
 
-  const handleSaveConfig = () => {
-    onUpdateCommonRequestGroups(localGroups);
-    onClose();
-  };
+    const handleAdd = (groupId: number) => {
+        const group = localGroups.find(g => g.id === groupId)
+        if (group) {
+            const newId = Math.max(...group.requests.map(r => r.id), 0) + 1
+            setLocalGroups(prevGroups =>
+                prevGroups.map(g =>
+                    g.id === groupId
+                        ? {...g, requests: [...g.requests, {id: newId, text: 'New Request', icon: null}]}
+                        : g
+                )
+            )
+            handleEdit(newId, 'New Request')
+        }
+    }
 
-  return (
-    <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent
-        className={classNames("mx-auto", {
-          "w-[98%]": isFullScreen,
-          "w-[40vw]": !isFullScreen,
-        })}
-      >
-        <DrawerHeader>
-          <DrawerTitle>Configure Common Requests</DrawerTitle>
-        </DrawerHeader>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="p-4 h-full flex flex-col"
-        >
-          <div className="flex items-center space-x-2 mb-4">
-            <Select
-              value={selectedGroupId.toString()}
-              onValueChange={(value) => setSelectedGroupId(parseInt(value))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select a group" />
-              </SelectTrigger>
-              <SelectContent>
-                {localGroups.map((group) => (
-                  <SelectItem key={group.id} value={group.id.toString()}>
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="New group name"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              className="flex-grow"
-            />
-            <Button onClick={handleAddGroup}>
-              <FolderPlus className="h-4 w-4 mr-2" /> Add Group
-            </Button>
-          </div>
-          <div className="space-y-2 flex-grow overflow-y-auto">
-            {localGroups
-              .find((g) => g.id === selectedGroupId)
-              ?.requests.map((request) => (
-                <div key={request.id} className="flex items-center space-x-2">
-                  {editingId === request.id ? (
-                    <Input
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="flex-grow"
-                    />
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left
-                        bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
-                        dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
-                        transition-colors"
-                    >
-                      {getIcon(request.icon)}
-                      <span className="truncate">{request.text}</span>
+    const handleAddGroup = () => {
+        if (newGroupName.trim()) {
+            const newId = Math.max(...localGroups.map(g => g.id), 0) + 1
+            setLocalGroups(prevGroups => [...prevGroups, {id: newId, name: newGroupName.trim(), requests: []}])
+            setNewGroupName('')
+            setSelectedGroupId(newId)
+        }
+    }
+
+    const handleSaveConfig = () => {
+        onUpdateCommonRequestGroups(localGroups)
+        onClose()
+    }
+
+    return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+            <DrawerContent className={classNames('mx-auto', {
+                'w-[98%]': isFullScreen,
+                'w-[40vw]': !isFullScreen
+            })}>
+                <DrawerHeader>
+                    <DrawerTitle>Configure Common Requests</DrawerTitle>
+                </DrawerHeader>
+                <motion.div
+                    initial={{opacity: 0}}
+                    animate={{opacity: 1}}
+                    exit={{opacity: 0}}
+                    transition={{duration: 0.3}}
+                    className="p-4 h-full flex flex-col"
+                >
+                    <div className="flex items-center space-x-2 mb-4">
+                        <Select value={selectedGroupId.toString()}
+                                onValueChange={(value) => setSelectedGroupId(parseInt(value))}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select a group"/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {localGroups.map((group) => (
+                                    <SelectItem key={group.id} value={group.id.toString()}>{group.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Input
+                            placeholder="New group name"
+                            value={newGroupName}
+                            onChange={(e) => setNewGroupName(e.target.value)}
+                            className="flex-grow"
+                        />
+                        <Button onClick={handleAddGroup}>
+                            <FolderPlus className="h-4 w-4 mr-2"/> Add Group
+                        </Button>
+                    </div>
+                    <div className="space-y-2 flex-grow overflow-y-auto">
+                        {localGroups.find(g => g.id === selectedGroupId)?.requests.map((request) => (
+                            <div key={request.id} className="flex items-center space-x-2">
+                                {editingId === request.id ? (
+                                    <Input
+                                        value={editText}
+                                        onChange={(e) => setEditText(e.target.value)}
+                                        className="flex-grow"
+                                    />
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start text-left
+                                        bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300
+                                        dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700
+                                        transition-colors"
+                                    >
+                                        {getIcon(request.icon)}
+                                        <span className="truncate">{request.text}</span>
+                                    </Button>
+                                )}
+                                {editingId === request.id ? (
+                                    <Button variant={'ghost'} size="icon" onClick={() => handleSave(selectedGroupId, request.id)}>
+                                        <Save className="h-4 w-4"/>
+                                    </Button>
+                                ) : (
+                                    <Button variant={'ghost'} size="icon" onClick={() => handleEdit(request.id, request.text)}>
+                                        <Edit className="h-4 w-4"/>
+                                    </Button>
+                                )}
+                                <Button variant={'ghost'} size="icon" onClick={() => handleDelete(selectedGroupId, request.id)}>
+                                    <Trash className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                    <Button onClick={() => handleAdd(selectedGroupId)} className="mt-4">
+                        <Plus className="h-4 w-4 mr-2"/> Add Request
                     </Button>
-                  )}
-                  {editingId === request.id ? (
-                    <Button
-                      variant={"ghost"}
-                      size="icon"
-                      onClick={() => handleSave(selectedGroupId, request.id)}
-                    >
-                      <Save className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant={"ghost"}
-                      size="icon"
-                      onClick={() => handleEdit(request.id, request.text)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant={"ghost"}
-                    size="icon"
-                    onClick={() => handleDelete(selectedGroupId, request.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-          </div>
-          <Button onClick={() => handleAdd(selectedGroupId)} className="mt-4">
-            <Plus className="h-4 w-4 mr-2" /> Add Request
-          </Button>
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="outline" onClick={onClose}>
-              <X className="h-4 w-4 mr-2" /> Cancel
-            </Button>
-            <Button onClick={handleSaveConfig}>
-              <Save className="h-4 w-4 mr-2" /> Save
-            </Button>
-          </div>
-        </motion.div>
-      </DrawerContent>
-    </Drawer>
-  );
+                    <div className="flex justify-end space-x-2 mt-4">
+                        <Button variant="outline" onClick={onClose}>
+                            <X className="h-4 w-4 mr-2"/> Cancel
+                        </Button>
+                        <Button onClick={handleSaveConfig}>
+                            <Save className="h-4 w-4 mr-2"/> Save
+                        </Button>
+                    </div>
+                </motion.div>
+            </DrawerContent>
+        </Drawer>
+    )
 }

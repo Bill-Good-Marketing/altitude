@@ -852,6 +852,8 @@ export const NoteTypeNameMapping: { [key in NoteType]: string } = {
 
 
 
+
+
 /* BEGIN GENERATED ENUM LIST DO NOT MODIFY OR REMOVE THIS COMMENT */
 export declare type AIEnumKey = 'ActivityStepType' | 'DateOffsetType' | 'ContactTimelineEventType' | 'ContactTimelineEventJoinType' | 'NoteType' | 'OpportunityStatus' | 'ActivityType' | 'ActivityPriority' | 'TaskScheduleType' | 'ActivityStatus' | 'AddressType' | 'ContactType' | 'ContactStatus' | 'PhoneType' | 'ImportantDateType' | 'HouseholdRelationshipStatus' | 'CompanyRelationshipStatus' | 'LifecycleStage' | 'Role';
 // Key is the enum name
