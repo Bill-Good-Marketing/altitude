@@ -69,6 +69,12 @@ import { EnglishList } from "~/components/util/EnglishList";
 import { ActivityTypeIcon } from "~/components/data/models/ActivityTypeIcon";
 import { getUserTimeline } from "~/app/(authenticated)/Actions";
 
+// Fallback types for react-beautiful-dnd if not exported by your version.
+type DroppableProvided = any;
+type DroppableStateSnapshot = any;
+type DraggableProvided = any;
+type DraggableStateSnapshot = any;
+
 // Dummy implementations for missing functions.
 const handleCall = (phone: string) => {
   console.log(`Initiating call to ${phone}`);
@@ -246,7 +252,7 @@ export default function TodayDashboard({
     "personalTouch",
   ]);
 
-  // Compute notifications inline (without useMemo) to avoid compiler memoization issues.
+  // Compute notifications inline.
   const notifications: Notification[] = [
     ...appointments.map((appointment) => ({
       id: `appointment-${appointment.guid}`,
@@ -310,7 +316,10 @@ export default function TodayDashboard({
   };
 
   const formatTime = (time: Date) => {
-    return time.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return time.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   };
 
   const onDragEnd = (result: DropResult) => {
@@ -365,9 +374,7 @@ export default function TodayDashboard({
                       With{" "}
                       <EnglishList
                         Component={({ children, idx }) => (
-                          <FormattedLink
-                            href={`/contacts/${appointment.with[idx].guid}`}
-                          >
+                          <FormattedLink href={`/contacts/${appointment.with[idx].guid}`}>
                             {children}
                           </FormattedLink>
                         )}
@@ -409,9 +416,7 @@ export default function TodayDashboard({
                       With{" "}
                       <EnglishList
                         Component={({ children, idx }) => (
-                          <FormattedLink
-                            href={`/contacts/${appointment.with[idx].guid}`}
-                          >
+                          <FormattedLink href={`/contacts/${appointment.with[idx].guid}`}>
                             {children}
                           </FormattedLink>
                         )}
@@ -922,7 +927,7 @@ const ExpandableCard = ({
       isCombineEnabled={false}
       ignoreContainerClipping={false}
     >
-      {(provided, snapshot) => {
+      {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => {
         const isBeingDragged =
           (snapshot.isDraggingOver && snapshot.draggingOverWith === id) ||
           snapshot.draggingFromThisWith === id;
@@ -933,7 +938,7 @@ const ExpandableCard = ({
               snapshot.draggingFromThisWith !== id && <div />}
             <div {...provided.droppableProps} ref={provided.innerRef}>
               <Draggable draggableId={id} index={idx}>
-                {(provided, snapshot) => {
+                {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => {
                   const props = { ...provided.draggableProps };
                   if (props.style?.transform && !snapshot.isDragging) {
                     props.style.transform = "";
