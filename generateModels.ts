@@ -2,7 +2,7 @@
 
 import * as fs from "fs";
 import path from "node:path";
-import {computeFullName} from "~/db/sql/computeFunctions";
+import {computeFullName} from "./src/db/sql/computeFunctions";
 import {isEmptyString, pluralize} from "./src/util/strings";
 
 const schema = fs.readFileSync("./prisma/schema.prisma", "utf8");
