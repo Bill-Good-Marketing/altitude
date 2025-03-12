@@ -14,10 +14,9 @@ import { Label } from "~/components/ui/label";
 import { EyeIcon, EyeOffIcon, Loader2, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Checkbox } from "~/components/ui/checkbox";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -47,7 +46,7 @@ export default function LoginPage() {
 
   const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     if (!emailRegex.test(email)) {
@@ -59,28 +58,28 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    const response = await signIn("standard", {
-      redirect: false,
-      email,
-      password,
-      rememberMe: rememberMe ? "true" : "false",
-    });
-    if (response) {
-      if (response.error) {
-        if (response.error === "CredentialsSignin") {
-          toast.error("Your email or password is incorrect. Please try again.");
+    try {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
+      const data = await response.json();
+      let errorMessage = "";
+      if (!response.ok) {
+        if (data.error) {
+          errorMessage = data.error;
         } else {
-          toast.error("An error occurred.", { description: response.error });
+          errorMessage = "Registration failed.";
         }
+        toast.error(errorMessage);
         setLoading(false);
         return;
-      } else if (!response.ok) {
-        toast.error("Your email or password is incorrect. Please try again.");
-        setLoading(false);
-        return;
-      } else {
-        router.push("/");
       }
+      toast.success("Registration successful! Please sign in.");
+      router.push("/login");
+    } catch (error) {
+      toast.error("An error occurred.");
     }
     setLoading(false);
   };
@@ -99,17 +98,21 @@ export default function LoginPage() {
         <div className="absolute top-4 right-4">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded bg-white/20 backdrop-blur-sm dark:bg-slate-800/20 text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-800/30 transition-colors"
+            className="p-2 rounded bg-white/20 backdrop-blur-sm dark:bg-slate-800/20 
+                       text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-800/30 
+                       transition-colors"
           >
             {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
             <span className="sr-only">Toggle theme</span>
           </button>
         </div>
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email and password to log in.</CardDescription>
+          <CardTitle className="text-2xl">Register</CardTitle>
+          <CardDescription>
+            Enter your email and password to create your account.
+          </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSignup}>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -150,13 +153,13 @@ export default function LoginPage() {
           <CardFooter>
             <Button className="w-full" disabled={loading} type="submit">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign in
+              Sign up
             </Button>
           </CardFooter>
         </form>
         <div className="flex justify-center mt-4">
-          <Button variant="link" onClick={() => router.push("/signup")}>
-            Don't have an account? Sign up
+          <Button variant="link" onClick={() => router.push("/login")}>
+            Already have an account? Sign in
           </Button>
         </div>
       </Card>
