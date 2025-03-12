@@ -13,19 +13,19 @@ import {
     ImportantDateType,
     PhoneType,
     TaskScheduleType
-} from "~/common/enum/enumerations";
-import {generateGuid} from "~/util/db/guid";
+} from "./src/common/enum/enumerations";
+import {generateGuid} from "./src/util/db/guid";
 import {SexType} from "@faker-js/faker";
-import {Contact} from "~/db/sql/models/Contact";
-import {Activity} from "~/db/sql/models/Activity";
-import {Model} from "~/db/sql/SQLBase";
-import {encryptData} from "~/util/db/datamanagement";
+import {Contact} from "./src/db/sql/models/Contact";
+import {Activity} from "./src/db/sql/models/Activity";
+import {Model} from "./src/db/sql/SQLBase";
+import {encryptData} from "./src/util/db/datamanagement";
 import bcrypt from "bcrypt";
-import {Address} from "~/db/sql/models/Address";
-import {ContactEmail} from "~/db/sql/models/ContactEmail";
-import {ContactPhone} from "~/db/sql/models/ContactPhone";
-import {ImportantDate} from "~/db/sql/models/ImportantDate";
-import {Note} from "~/db/sql/models/Note";
+import {Address} from "./src/db/sql/models/Address";
+import {ContactEmail} from "./src/db/sql/models/ContactEmail";
+import {ContactPhone} from "./src/db/sql/models/ContactPhone";
+import {ImportantDate} from "./src/db/sql/models/ImportantDate";
+import {Note} from "./src/db/sql/models/Note";
 import {ContactTimelineEvent} from "./src/db/sql/models/ContactTimelineEvent";
 import {User} from "./src/db/sql/models/User";
 

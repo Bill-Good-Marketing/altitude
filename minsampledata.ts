@@ -1,6 +1,6 @@
-import {Tenet} from "~/db/sql/models/Tenet";
-import {User} from "~/db/sql/models/User";
-import {Contact} from "~/db/sql/models/Contact";
+import {Tenet} from "./src/db/sql/models/Tenet";
+import {User} from "./src/db/sql/models/User";
+import {Contact} from "./src/db/sql/models/Contact";
 import {
     AccessGroup,
     ActivityStatus,
@@ -12,8 +12,8 @@ import {
     ImportantDateType,
     PhoneType,
     TaskScheduleType
-} from "~/common/enum/enumerations";
-import {Activity} from "~/db/sql/models/Activity";
+} from "./src/common/enum/enumerations";
+import {Activity} from "./src/db/sql/models/Activity";
 import {ActivityWaypoint} from "./src/db/sql/models/ActivityWaypoint";
 import {ContactTimelineEvent} from "./src/db/sql/models/ContactTimelineEvent";
 import {ActivityStep} from "./src/db/sql/models/ActivityStep";
