@@ -39,6 +39,13 @@ import {Logger} from "./src/util/Logger";
 
 const logger = new Logger('PlaygroundImport')
 
+const existingTenet = await Tenet.readUnique({ where: {name: 'Test Tenet'}});
+
+if (existingTenet) {
+    logger.info("Test tenet already exists. Skipping data seed");
+    process.exit(0);
+}
+
 await PerformInTransaction(async () => {
     const tenet = new Tenet(undefined, {
         name: 'Test Tenet',

@@ -1,5 +1,8 @@
-"use client";
+'use client';
 
+//////////////////////////////////////////////
+// Global Declarations for Speech Recognition
+//////////////////////////////////////////////
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -7,49 +10,8 @@ declare global {
   }
 }
 
-// --- Minimal type definitions for the Web Speech API ---
-interface SpeechRecognitionEvent extends Event {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-  [Symbol.iterator](): Iterator<SpeechRecognitionResult>;
-}
-
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-}
-
-declare var SpeechRecognition: {
-  prototype: SpeechRecognition;
-  new (): SpeechRecognition;
-};
-
-declare var webkitSpeechRecognition: {
-  prototype: SpeechRecognition;
-  new (): SpeechRecognition;
-};
-// --- End of type declarations ---
+// Optionally, you can define a type alias for the event:
+// type SpeechRecognitionEvent = any;
 
 import React, { useEffect, useRef, useState } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "~/components/ui/drawer";
@@ -78,7 +40,7 @@ import {
   UserCircle,
   UserCircle2,
   Users,
-  X,
+  X
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
@@ -95,7 +57,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "~/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Label } from "~/components/ui/label";
@@ -123,7 +85,7 @@ export function Pathfinder() {
   const [canSubmit, setCanSubmit] = useState(true);
   const [speechRecognitionEnabled, setSpeechRecognitionEnabled] = useState(false);
 
-  // TODO: Make this persisted
+  // For common requests at the top.
   const [commonRequestGroups, setCommonRequestGroups] = useState<CommonRequestGroup[]>([
     {
       id: 1,
@@ -131,49 +93,60 @@ export function Pathfinder() {
       requests: [
         { id: 1, text: "What do I need to do today?", icon: "Calendar" },
         { id: 5, text: "What do I need to do for this client today?", icon: "Calendar" },
-        { id: 2, text: "Generate a report", icon: "FileText" },
-      ],
+        { id: 2, text: "Generate a report", icon: "FileText" }
+      ]
     },
     {
       id: 2,
       name: "Analytics",
-      requests: [{ id: 3, text: "Analyze market trends", icon: "TrendingUp" }],
+      requests: [{ id: 3, text: "Analyze market trends", icon: "TrendingUp" }]
     },
     {
       id: 3,
       name: "Clients",
-      requests: [{ id: 4, text: "Update client information", icon: "Users" }],
-    },
+      requests: [{ id: 4, text: "Update client information", icon: "Users" }]
+    }
   ]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<any>(null);
   const [speechToTextPreValue, setSpeechToTextPreValue] = useState("");
   const speechToTextPreValueRef = useStateRef(speechToTextPreValue);
-  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // We'll reuse isFullscreen to indicate "expanded" vs. "collapsed".
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Instead of a side drawer, we'll rely on the same open/close state but visually style it as a bottom “fixed footer.”
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isPersonalitySelectorOpen, setIsPersonalitySelectorOpen] = useState(false);
 
+  // Handle voice-to-text toggling
   const handleVoiceToText = () => {
     setIsListening(!isListening);
-    // Implement voice-to-text functionality here
   };
 
   useEffect(() => {
     if (isListening) {
-      const sr = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      // Use the available SpeechRecognition constructor (either standard or webkit)
+      const SpeechRecognitionConstructor =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionConstructor) {
+        console.error("SpeechRecognition is not supported in this browser.");
+        setSpeechRecognitionEnabled(false);
+        return;
+      }
+      const sr = new SpeechRecognitionConstructor();
       setSpeechToTextPreValue(input);
       sr.continuous = true;
       sr.interimResults = true;
       sr.lang = "en-US";
-      sr.onresult = (event: SpeechRecognitionEvent) => {
-        let interim_transcript = "";
-
-        for (const item of event.results) {
-          interim_transcript += item[0].transcript;
+      // Explicitly type the event parameter as any to bypass missing type definitions
+      sr.onresult = (event: any) => {
+        let interimTranscript = "";
+        for (const result of event.results) {
+          interimTranscript += result[0].transcript;
         }
-
-        interim_transcript = interim_transcript
+        interimTranscript = interimTranscript
           .replace(/ comma/gi, ",")
           .replace(/ period/gi, ".")
           .replace(/ question mark/gi, "?")
@@ -186,9 +159,8 @@ export function Pathfinder() {
           .replace(/ hyphen/gi, "-")
           .replace(/ dash/gi, "-")
           .replace(/ underscore/gi, "_");
-
-        if (interim_transcript.length > 0) {
-          setInput(speechToTextPreValueRef.current + interim_transcript);
+        if (interimTranscript.length > 0) {
+          setInput(speechToTextPreValueRef.current + interimTranscript);
         }
       };
       sr.start();
@@ -200,6 +172,7 @@ export function Pathfinder() {
       }
       setSpeechToTextPreValue(input);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isListening]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,18 +207,19 @@ export function Pathfinder() {
   const { messages, input, append, setInput, setMessages, stop } = useChat({
     body: {
       tzOffset: new Date().getTimezoneOffset(),
-      contact: regex.test(path) ? { id: contactId, fullName: contactName } : null,
+      contact: regex.test(path) ? { id: contactId, fullName: contactName } : null
     },
     onError: (error) => {
       console.error(error);
       toast.error(error.message);
-    },
+    }
   });
 
   useEffect(() => {
     setSpeechRecognitionEnabled(true);
 
     const listener = (event: KeyboardEvent) => {
+      // Toggle the bottom panel on backtick or tilde
       if ((event.key === "`" || event.key === "~") && document.activeElement?.getAttribute("id") !== "pathfinder-input") {
         event.preventDefault();
         setVisible((prev) => !prev);
@@ -261,7 +235,6 @@ export function Pathfinder() {
 
   // Merge successive tool calls into one message
   const _messages: Message[] = [];
-
   for (const message of messages) {
     if (_messages.length === 0 || message.toolInvocations == null) {
       _messages.push(message);
@@ -272,7 +245,7 @@ export function Pathfinder() {
       } else {
         _messages.push({
           ...message,
-          toolInvocations: [...message.toolInvocations],
+          toolInvocations: [...message.toolInvocations]
         });
       }
     }
@@ -282,7 +255,7 @@ export function Pathfinder() {
   useEffect(() => {
     messageBoxRef.current?.scrollTo({
       top: messageBoxRef.current.scrollHeight,
-      behavior: "smooth",
+      behavior: "smooth"
     });
   }, [messages]);
 
@@ -291,40 +264,43 @@ export function Pathfinder() {
       <Drawer open={visible} onOpenChange={setVisible}>
         <DrawerContent
           className={classNames(
-            "mx-auto !select-auto bg-gradient-to-br dark:from-zinc-950 dark:to-zinc-900 from-gray-50 to-gray-100 !transition-all duration-300 ease-in-out",
+            "fixed bottom-0 inset-x-0 z-50",
+            "bg-gradient-to-br dark:from-zinc-950 dark:to-zinc-900 from-gray-50 to-gray-100",
+            "transition-all duration-300 ease-in-out rounded-t-xl shadow-lg border-t border-gray-200 dark:border-zinc-700",
             {
-              "w-[98%] h-[99%]": isFullScreen,
-              "w-[40vw] h-[80%]": !isFullScreen,
+              "h-[70vh]": isFullscreen,
+              "h-[40vh]": !isFullscreen
             }
           )}
         >
-          <DrawerHeader>
-            <div className="flex items-center justify-between">
-              <DrawerTitle>Pathfinder AI</DrawerTitle>
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="icon" onClick={() => setIsPersonalitySelectorOpen(true)}>
-                  <UserCircle2 className="h-6 w-6" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(true)}>
-                  <Settings2 className="h-6 w-6" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsFullScreen(!isFullScreen)}>
-                  {isFullScreen ? <Minimize2 className="h-6 w-6" /> : <Maximize2 className="h-6 w-6" />}
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => setVisible(false)}>
-                  <X className="h-6 w-6" />
-                </Button>
-              </div>
+          <DrawerHeader className="px-4 pt-2 flex items-center justify-between">
+            <DrawerTitle>Pathfinder AI</DrawerTitle>
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="icon" onClick={() => setIsPersonalitySelectorOpen(true)}>
+                <UserCircle2 className="h-6 w-6" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(true)}>
+                <Settings2 className="h-6 w-6" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsFullscreen(!isFullscreen)}>
+                {isFullscreen ? <Minimize2 className="h-6 w-6" /> : <Maximize2 className="h-6 w-6" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setVisible(false)}>
+                <X className="h-6 w-6" />
+              </Button>
             </div>
           </DrawerHeader>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex flex-col items-center mb-4"
+            className="px-4 mb-2"
           >
-            <div className="flex items-center justify-center w-full mb-2">
-              <h2 className="text-lg font-semibold mr-2">{commonRequestGroups[currentGroupIndex].name}</h2>
+            <div className="flex items-center justify-start mb-2">
+              <h2 className="text-md font-semibold mr-2">
+                {commonRequestGroups[currentGroupIndex].name}
+              </h2>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -340,7 +316,7 @@ export function Pathfinder() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap gap-2">
               {commonRequestGroups[currentGroupIndex].requests.map((request) => (
                 <Button
                   key={request.id}
@@ -350,7 +326,10 @@ export function Pathfinder() {
                     if (!canSubmit) return;
                     setCanSubmit(false);
                     setIsListening(false);
-                    append({ role: "user", content: request.text }).then(() => {
+                    append({
+                      role: "user",
+                      content: request.text
+                    }).then(() => {
                       setCanSubmit(true);
                     });
                   }}
@@ -363,8 +342,8 @@ export function Pathfinder() {
             </div>
           </motion.div>
 
-          <div className={classNames("items-center mb-4", { "h-[99%]": isFullScreen, "h-[80%]": !isFullScreen })}>
-            <div className="overflow-y-auto low-profile-scrollbar px-4 space-y-4 h-[calc(92%-3rem)]" ref={messageBoxRef}>
+          <div className="flex flex-col h-full">
+            <div className="overflow-y-auto low-profile-scrollbar px-4 space-y-4 flex-grow" ref={messageBoxRef}>
               {_messages.map((message) => (
                 <motion.div
                   key={message.id}
@@ -374,7 +353,7 @@ export function Pathfinder() {
                   className={classNames("flex", {
                     "w-fit": message.toolInvocations != null,
                     "justify-end": message.role === "user",
-                    "justify-start": message.role !== "user",
+                    "justify-start": message.role !== "user"
                   })}
                 >
                   {message.toolInvocations != null ? (
@@ -399,8 +378,8 @@ export function Pathfinder() {
                       className={classNames("p-3 rounded-lg", {
                         "bg-blue-600 text-white": message.role === "user",
                         "dark:bg-zinc-700 bg-zinc-300": message.role !== "user",
-                        "max-w-[50%]": isFullScreen,
-                        "max-w-[60%]": !isFullScreen,
+                        "max-w-[70%]": !isFullscreen,
+                        "max-w-[50%]": isFullscreen
                       })}
                     >
                       <b>{message.role === "user" ? "User: " : "AI: "}</b>
@@ -416,9 +395,15 @@ export function Pathfinder() {
                 </motion.div>
               ))}
             </div>
-            <div className="mt-4">
+
+            <div className="mt-2 px-4 pb-4">
               <hr className="mb-4" />
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex items-center justify-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-center justify-center space-x-2"
+              >
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -429,6 +414,7 @@ export function Pathfinder() {
                     <TooltipContent>Clear conversation</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+
                 <PlaceholdersAndVanishInput
                   id="pathfinder-input"
                   placeholders={["Something or other...", "Another thing...", "Something else..."]}
@@ -438,11 +424,15 @@ export function Pathfinder() {
                     if (!canSubmit) return;
                     setCanSubmit(false);
                     setIsListening(false);
-                    append({ role: "user", content: input }).then(() => {
+                    append({
+                      role: "user",
+                      content: input
+                    }).then(() => {
                       setCanSubmit(true);
                     });
                   }}
                 />
+
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -459,7 +449,10 @@ export function Pathfinder() {
                           const lastMessage = msgs.pop();
                           if (lastMessage) {
                             setMessages(msgs);
-                            append({ role: "user", content: lastMessage.content }).then(() => {
+                            append({
+                              role: "user",
+                              content: lastMessage.content
+                            }).then(() => {
                               setCanSubmit(true);
                             });
                             toast.info("Resending last message");
@@ -474,23 +467,38 @@ export function Pathfinder() {
                     </TooltipTrigger>
                     <TooltipContent>Resend last message</TooltipContent>
                   </Tooltip>
+
                   {speechRecognitionEnabled && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={handleVoiceToText}>
-                          <Mic className={`h-4 w-4 ${isFullScreen ? "text-red-500" : ""}`} />
+                          <Mic className={`h-4 w-4 ${isListening ? "text-red-500" : ""}`} />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{isListening ? "Stop Listening" : "Listen"}</TooltipContent>
+                      <TooltipContent>
+                        {isListening ? "Stop Listening" : "Listen"}
+                      </TooltipContent>
                     </Tooltip>
                   )}
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <label htmlFor="file-upload" className="cursor-pointer">
-                        <Button variant="ghost" size="icon" onClick={() => document.getElementById("file-upload")?.click()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            document.getElementById("file-upload")?.click()
+                          }
+                        >
                           <Upload className="h-4 w-4" />
                         </Button>
-                        <input id="file-upload" type="file" className="hidden" onChange={handleFileUpload} />
+                        <input
+                          id="file-upload"
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
                       </label>
                     </TooltipTrigger>
                     <TooltipContent>Upload a file</TooltipContent>
@@ -505,19 +513,24 @@ export function Pathfinder() {
       <ConfigDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        isFullScreen={isFullScreen}
+        isFullScreen={isFullscreen}
         commonRequestGroups={commonRequestGroups}
         onUpdateCommonRequestGroups={setCommonRequestGroups}
       />
       <PersonalitySelector
         isOpen={isPersonalitySelectorOpen}
         onClose={() => setIsPersonalitySelectorOpen(false)}
-        isFullScreen={isFullScreen}
+        isFullScreen={isFullscreen}
       />
     </>
   );
 }
 
+/**
+ * Below are your existing “ConfigDrawer” and “PersonalitySelector” components.
+ * Only the styling for the main <DrawerContent> above is changed
+ * to behave like a bottom fixed footer.
+ */
 type PersonalitySelectorProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -528,7 +541,7 @@ const personalities = [
   { id: "professional", name: "Professional", icon: <UserCircle className="h-5 w-5 mr-2" /> },
   { id: "friendly", name: "Friendly", icon: <Smile className="h-5 w-5 mr-2" /> },
   { id: "creative", name: "Creative", icon: <Lightbulb className="h-5 w-5 mr-2" /> },
-  { id: "analytical", name: "Analytical", icon: <ChartBar className="h-5 w-5 mr-2" /> },
+  { id: "analytical", name: "Analytical", icon: <ChartBar className="h-5 w-5 mr-2" /> }
 ];
 
 function PersonalitySelector({ isOpen, onClose, isFullScreen }: PersonalitySelectorProps) {
@@ -545,8 +558,18 @@ function PersonalitySelector({ isOpen, onClose, isFullScreen }: PersonalitySelec
         <DrawerHeader>
           <DrawerTitle>Select AI Personality</DrawerTitle>
         </DrawerHeader>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="p-4 h-full flex flex-col">
-          <RadioGroup value={selectedPersonality} onValueChange={setSelectedPersonality} className="space-y-2">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="p-4 h-full flex flex-col"
+        >
+          <RadioGroup
+            value={selectedPersonality}
+            onValueChange={setSelectedPersonality}
+            className="space-y-2"
+          >
             {personalities.map((personality) => (
               <div key={personality.id} className="flex items-center space-x-2">
                 <RadioGroupItem value={personality.id} id={personality.id} />
@@ -582,7 +605,7 @@ export default function ConfigDrawer({
   onClose,
   commonRequestGroups,
   onUpdateCommonRequestGroups,
-  isFullScreen,
+  isFullScreen
 }: ConfigDrawerProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
@@ -614,7 +637,12 @@ export default function ConfigDrawer({
     setLocalGroups((prevGroups) =>
       prevGroups.map((group) =>
         group.id === groupId
-          ? { ...group, requests: group.requests.map((req) => (req.id === id ? { ...req, text: editText } : req)) }
+          ? {
+              ...group,
+              requests: group.requests.map((req) =>
+                req.id === id ? { ...req, text: editText } : req
+              )
+            }
           : group
       )
     );
@@ -625,7 +653,9 @@ export default function ConfigDrawer({
   const handleDelete = (groupId: number, id: number) => {
     setLocalGroups((prevGroups) =>
       prevGroups.map((group) =>
-        group.id === groupId ? { ...group, requests: group.requests.filter((req) => req.id !== id) } : group
+        group.id === groupId
+          ? { ...group, requests: group.requests.filter((req) => req.id !== id) }
+          : group
       )
     );
   };
@@ -636,7 +666,9 @@ export default function ConfigDrawer({
       const newId = Math.max(...group.requests.map((r) => r.id), 0) + 1;
       setLocalGroups((prevGroups) =>
         prevGroups.map((g) =>
-          g.id === groupId ? { ...g, requests: [...g.requests, { id: newId, text: "New Request", icon: null }] } : g
+          g.id === groupId
+            ? { ...g, requests: [...g.requests, { id: newId, text: "New Request", icon: null }] }
+            : g
         )
       );
       handleEdit(newId, "New Request");
@@ -646,7 +678,10 @@ export default function ConfigDrawer({
   const handleAddGroup = () => {
     if (newGroupName.trim()) {
       const newId = Math.max(...localGroups.map((g) => g.id), 0) + 1;
-      setLocalGroups((prevGroups) => [...prevGroups, { id: newId, name: newGroupName.trim(), requests: [] }]);
+      setLocalGroups((prevGroups) => [
+        ...prevGroups,
+        { id: newId, name: newGroupName.trim(), requests: [] }
+      ]);
       setNewGroupName("");
       setSelectedGroupId(newId);
     }
@@ -663,9 +698,18 @@ export default function ConfigDrawer({
         <DrawerHeader>
           <DrawerTitle>Configure Common Requests</DrawerTitle>
         </DrawerHeader>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="p-4 h-full flex flex-col">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="p-4 h-full flex flex-col"
+        >
           <div className="flex items-center space-x-2 mb-4">
-            <Select value={selectedGroupId.toString()} onValueChange={(value) => setSelectedGroupId(parseInt(value))}>
+            <Select
+              value={selectedGroupId.toString()}
+              onValueChange={(value) => setSelectedGroupId(parseInt(value))}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select a group" />
               </SelectTrigger>
@@ -688,33 +732,35 @@ export default function ConfigDrawer({
             </Button>
           </div>
           <div className="space-y-2 flex-grow overflow-y-auto">
-            {localGroups.find((g) => g.id === selectedGroupId)?.requests.map((request) => (
-              <div key={request.id} className="flex items-center space-x-2">
-                {editingId === request.id ? (
-                  <Input value={editText} onChange={(e) => setEditText(e.target.value)} className="flex-grow" />
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700 transition-colors"
-                  >
-                    {getIcon(request.icon)}
-                    <span className="truncate">{request.text}</span>
+            {localGroups
+              .find((g) => g.id === selectedGroupId)
+              ?.requests.map((request) => (
+                <div key={request.id} className="flex items-center space-x-2">
+                  {editingId === request.id ? (
+                    <Input value={editText} onChange={(e) => setEditText(e.target.value)} className="flex-grow" />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left bg-zinc-50 hover:bg-zinc-100 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700 transition-colors"
+                    >
+                      {getIcon(request.icon)}
+                      <span className="truncate">{request.text}</span>
+                    </Button>
+                  )}
+                  {editingId === request.id ? (
+                    <Button variant="ghost" size="icon" onClick={() => handleSave(selectedGroupId, request.id)}>
+                      <Save className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(request.id, request.text)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(selectedGroupId, request.id)}>
+                    <Trash className="h-4 w-4" />
                   </Button>
-                )}
-                {editingId === request.id ? (
-                  <Button variant="ghost" size="icon" onClick={() => handleSave(selectedGroupId, request.id)}>
-                    <Save className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(request.id, request.text)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(selectedGroupId, request.id)}>
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+                </div>
+              ))}
           </div>
           <Button onClick={() => handleAdd(selectedGroupId)} className="mt-4">
             <Plus className="h-4 w-4 mr-2" /> Add Request

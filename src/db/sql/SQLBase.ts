@@ -995,7 +995,7 @@ export abstract class Model<T extends Model<T>> {
 
             // @ts-expect-error - We will just hope that the prisma client has this class in it.
             const data = await client[this.className()].findUnique({
-                relationLoadStrategy: queryStrategy,
+                relationLoadStrategy: 'query',
                 where: {
                     id: this._guid
                 },
@@ -4033,7 +4033,7 @@ export abstract class Model<T extends Model<T>> {
 
                 // @ts-expect-error - We'll just hope that the prisma client has this class in it.
                 objs = await client[model.className()].findMany({
-                    relationLoadStrategy: queryStrategy,
+                    relationLoadStrategy: 'query',
                     where: _where,
                     include: await this.prepareSelect(model, include as ReadAttributes<T>, true, forceReadDeleted),
                     orderBy: prismaOrderBy,
@@ -4053,7 +4053,7 @@ export abstract class Model<T extends Model<T>> {
 
                 // @ts-expect-error - We'll just hope that the prisma client has this class in it.
                 objs = await client[model.className()].findMany({
-                    relationLoadStrategy: queryStrategy,
+                    relationLoadStrategy: 'query',
                     where: _where,
                     select: await this.prepareSelect(model, select, false, forceReadDeleted),
                     orderBy: prismaOrderBy,
@@ -4270,7 +4270,7 @@ export abstract class Model<T extends Model<T>> {
 
                 // @ts-expect-error - We'll just hope that the prisma client has this class in it.
                 obj = await client[model.className()].findUnique({
-                    relationLoadStrategy: queryStrategy,
+                    relationLoadStrategy: 'query',
                     where: _where,
                     include: await this.prepareSelect(model, include as ReadAttributes<T>, true, forceReadDeleted),
                 });
@@ -4287,7 +4287,7 @@ export abstract class Model<T extends Model<T>> {
 
                 // @ts-expect-error - We'll just hope that the prisma client has this class in it.
                 obj = await client[model.className()].findUnique({
-                    relationLoadStrategy: queryStrategy,
+                    relationLoadStrategy: 'query',
                     where: _where,
                     select: await this.prepareSelect(model, select, false, forceReadDeleted),
                 });
