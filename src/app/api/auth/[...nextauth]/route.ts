@@ -21,8 +21,10 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { getIP, isTokenValid } from "~/util/auth/AuthUtils";
 import { revalidateCache } from "~/util/api/caching";
 
+// Use the TOKEN_VERSION env var or fallback to "1"
 export const TOKEN_VERSION = process.env.TOKEN_VERSION ?? "1";
 
+// This is the custom user data shape we use in our JWT token.
 type UserData = {
   guid: string;
   fullName: string;
@@ -32,6 +34,7 @@ type UserData = {
   tenetId?: string;
 };
 
+// Our custom JWT token type that includes additional properties.
 export type JWTToken = {
   rememberMe: boolean;
   user: UserData;
@@ -42,6 +45,7 @@ export type JWTToken = {
   tokenId: string;
 };
 
+// Our custom auth user type used when authorizing credentials.
 interface AuthUser {
   id: string;
   name: string;
@@ -52,6 +56,7 @@ interface AuthUser {
   tenetId?: string;
 }
 
+// Custom error for login failures.
 class LoginError extends Error {
   private _marker: string = "LoginError";
   constructor(message: string) {
@@ -65,6 +70,7 @@ class LoginError extends Error {
 const JWT_MAX_AGE = 60 * 60 * 4; // 4 hours
 const JWT_MAX_AGE_REMEMBER_ME = 15 * 60 * 60 * 24 * 365; // 15 years
 
+// This function verifies the credentials. It decrypts and compares passwords.
 export async function standardAuthorize(
   credentials?: Record<"email" | "password" | "rememberMe", string>,
   req?: Pick<RequestInternal, "body" | "query" | "headers" | "method">,
@@ -75,6 +81,8 @@ export async function standardAuthorize(
   try {
     if (!email || !password) return null;
     const rememberMeBool = rememberMe === "true";
+
+    // Look up the user using the supplied email.
     const user = await User.readUnique({
       where: { email },
       select: {
@@ -87,6 +95,8 @@ export async function standardAuthorize(
       },
     });
     if (!user) return null;
+
+    // Use your comparePassword function (which should handle decryption + bcrypt compare).
     if (comparePassword(password, user.password)) {
       if (!user.enabled) {
         if (isAdmin(user.type)) {
@@ -95,7 +105,7 @@ export async function standardAuthorize(
             LogLevel.CRITICAL,
             undefined,
             user.email,
-            `An attempt was made to log in with the email ${user.email} from the IP address ${ip}.`,
+            `Login attempt from IP ${ip}.`,
             "standardAuthorize",
             user.tenetId
           );
@@ -108,7 +118,7 @@ export async function standardAuthorize(
           LogLevel.INFO,
           undefined,
           user.email,
-          `The user ${user.email} logged in from the IP address ${ip}.`,
+          `User ${user.email} logged in from IP ${ip}.`,
           "standardAuthorize",
           user.tenetId
         );
@@ -129,7 +139,7 @@ export async function standardAuthorize(
           LogLevel.HIGH,
           undefined,
           user.email,
-          `An attempt was made to log in with the email ${user.email} from the IP address ${ip}.`,
+          `Invalid password attempt from IP ${ip}.`,
           "standardAuthorize",
           user.tenetId
         );
@@ -139,31 +149,31 @@ export async function standardAuthorize(
   } catch (e) {
     if (ValidationError.is(e)) {
       await Log.log(
-        `Log in`,
+        `Login validation error`,
         LogLevel.HIGH,
         (e as Error).stack,
         undefined,
-        `An error occurred while a user was trying to log in from the IP address ${ip}.\nDetails: ${(e as Error).message}`,
+        `Login error from IP ${ip}: ${(e as Error).message}`,
         "standardAuthorize"
       );
       throw new Error("Validation Error, please contact the site administrator.");
     } else if (UniqueConstraintViolationError.is(e)) {
       await Log.log(
-        `Log in unique constraint error`,
+        `Login unique constraint error`,
         LogLevel.WARNING,
         (e as Error).stack,
         undefined,
-        `An error occurred while a user was trying to log in from the IP address ${ip}.\nDetails: ${(e as Error).message}`,
+        `Unique constraint error from IP ${ip}: ${(e as Error).message}`,
         "standardAuthorize"
       );
       throw new Error("Validation Error, please contact the site administrator.");
     } else if (NonGenericServerError.is(e)) {
       await Log.log(
-        `Log in server error`,
+        `Login server error`,
         LogLevel.CRITICAL,
         (e as Error).stack,
         undefined,
-        `An error occurred while a user was trying to log in from the IP address ${ip}.\nDetails: ${(e as any).getLogMessage()}\n${(e as any).cause?.message ?? ""}`,
+        `Server error from IP ${ip}: ${(e as any).getLogMessage()}\n${(e as any).cause?.message ?? ""}`,
         "standardAuthorize"
       );
       throw new Error("An internal server error occurred. Please contact the site administrator.");
@@ -171,11 +181,11 @@ export async function standardAuthorize(
       throw e;
     } else {
       await Log.log(
-        `Log in error`,
+        `Login unknown error`,
         LogLevel.CRITICAL,
         (e as Error).stack,
         undefined,
-        `An error occurred while a user was trying to log in from the IP address ${ip}.\nDetails: ${(e as Error).message}`,
+        `Unknown error from IP ${ip}: ${(e as Error).message}`,
         "standardAuthorize"
       );
     }
@@ -194,10 +204,7 @@ const ViewEmailMapping: { [key: string]: string } = {
 type ViewableOfficeRoles = "advisor" | "office-admin" | "staff";
 const ArrayOfViewableOfficeRoles: ViewableOfficeRoles[] = ["advisor", "office-admin", "staff"];
 
-/**
- * Our custom session callback expects the session to include a "refresh" property.
- * We use an extended type here.
- */
+// Extend the session type to include our custom refresh flag.
 type ExtendedSession = Session & { refresh: boolean };
 
 function AuthOptionsProvider(ip = "unknown"): NextAuthOptions {
@@ -234,11 +241,11 @@ function AuthOptionsProvider(ip = "unknown"): NextAuthOptions {
       newUser: "/signup",
     },
     callbacks: {
-      // Our JWT callback
       async jwt({ token, user, trigger, session }): Promise<JWTToken> {
-        // Cast token to our custom JWTToken type
+        // Cast token to our custom JWTToken type.
         let jwtToken = token as JWTToken;
 
+        // Helper to get viewData based on session.view.
         async function getViewData(
           view: AccessGroup | ViewableOfficeRoles | string,
           allowed: Set<AccessGroup | ViewableOfficeRoles | "guid">
@@ -351,7 +358,6 @@ function AuthOptionsProvider(ip = "unknown"): NextAuthOptions {
                 }),
               ]);
               if (!usr) {
-                // Use type assertion to satisfy the revalidateCache call
                 await revalidateCache(`valid-${jwtToken.tokenId}` as any);
                 jwtToken.invalidated = true;
                 return jwtToken;
@@ -382,11 +388,9 @@ function AuthOptionsProvider(ip = "unknown"): NextAuthOptions {
         }
         return jwtToken;
       },
-      // Updated session callback with extended types.
-      async session({ session, token, newSession, trigger }: { session: Session; token: unknown; newSession: any; trigger: "update" }): Promise<ExtendedSession> {
-        // Cast token to our custom type.
+
+      async session({ session, token, newSession, trigger }): Promise<ExtendedSession> {
         const jwtToken = token as JWTToken;
-        // Extend the session with our custom property.
         const s = { ...session, refresh: false } as ExtendedSession;
         if (jwtToken && jwtToken.invalidated) {
           const tokenObj = new Token(jwtToken.tokenId);

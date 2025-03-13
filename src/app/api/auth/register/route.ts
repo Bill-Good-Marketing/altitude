@@ -4,20 +4,23 @@ import { generateGuid } from "~/util/db/guid";
 import { hashPassword } from "~/util/db/datamanagement";
 import { ValidationError } from "~/common/errors";
 import { AccessGroup } from "~/common/enum/enumerations";
+import { dbClient } from "~/db/sql/SQLBase";
+import { Buffer } from "buffer";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
-    if (!email || !password) {
+    const { email, password, firstName, lastName } = await request.json();
+
+    if (!email || !password || !firstName || !lastName) {
       return NextResponse.json(
-        { error: "Email and password are required." },
+        { error: "Email, password, first name and last name are required." },
         { status: 400 }
       );
     }
 
-    // Optionally, add additional validation here
+    // Optionally add additional validations (email format, password strength, etc.)
 
-    // Check if a user with this email already exists
+    // Check if a user with this email already exists.
     const existing = await User.readUnique({
       where: { email },
     });
@@ -28,16 +31,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create new user record
+    // Ensure there is a valid tenet to reference.
+    // Here we try to find a default tenet (for example, one named "Default Tenet").
+    let defaultTenet = await dbClient.tenet.findUnique({
+      where: { name: "Default Tenet" },
+    });
+    if (!defaultTenet) {
+      // Create the default tenet if it doesn't exist.
+      defaultTenet = await dbClient.tenet.create({
+        data: {
+          id: Buffer.from(generateGuid()) as Buffer,
+          name: "Default Tenet",
+        },
+      });
+    }
+
+    // Create new user record.
     const newUser = new User(undefined, {
       email,
-      firstName: "", // Optionally update with provided values
-      lastName: "",
-      fullName: email, // Fallback fullName, or capture separately
+      firstName,
+      lastName,
+      fullName: `${firstName} ${lastName}`,
       password: hashPassword(password),
       enabled: true,
       type: AccessGroup.CLIENT,
-      tenetId: Buffer.from(generateGuid()), // Assign the appropriate tenetId
+      tenetId: defaultTenet.id as Buffer,
     });
     await newUser.commit();
 

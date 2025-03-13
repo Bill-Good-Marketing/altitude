@@ -97,6 +97,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-purple-950">
       {loading && <LoadingOverlay />}
       <Card className="w-full max-w-sm glass-card">
+      <div className="flex p-6 items-center justify-center">
+          <Image 
+          src={"/img/BGM-logo.webp"} 
+          alt={"BGM"}
+          height={"100"}
+          width={"100"}
+          >
+          </Image>
+      </div>
         <div className="absolute top-4 right-4">
           <button
             onClick={toggleTheme}
@@ -105,15 +114,6 @@ export default function LoginPage() {
             {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
             <span className="sr-only">Toggle theme</span>
           </button>
-        </div>
-        <div className="justify-center">
-          <Image 
-          src={"/img/BGM-logo.webp"} 
-          alt={"BGM"}
-          height={"100"}
-          width={"100"}
-          >
-          </Image>
         </div>
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
@@ -169,21 +169,16 @@ export default function LoginPage() {
             Don't have an account? Sign up
           </Button>
         </div>
-      </Card>
-      <div className="justify-center">
+        <div className="flex p-6 justify-center">
           <Image 
-          src={"/img/waystone"} 
-          alt={"waystone"}
-          height={"100"}
-          width={"100"}
-          >
-          </Image>
-          <div className="flex justify-center mt-4">
-          <Button variant="link" onClick={() => router.push("https://gainaltitude.ai")}>
-            By Waystone Software
-          </Button>
-          </div>
+           src={"/img/waystone.webp"} 
+           alt={"waystone"}
+           height={"100"}
+           width={"100"}
+           >
+           </Image>
         </div>
+      </Card>
     </div>
   );
 }

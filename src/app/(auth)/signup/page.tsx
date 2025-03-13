@@ -14,9 +14,14 @@ import { Label } from "~/components/ui/label";
 import { EyeIcon, EyeOffIcon, Loader2, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Checkbox } from "~/components/ui/checkbox";
 
 export default function SignupPage() {
+  // New fields for first and last names.
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -27,7 +32,10 @@ export default function SignupPage() {
   const emailInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
       setTheme("dark");
     }
   }, []);
@@ -46,7 +54,7 @@ export default function SignupPage() {
 
   const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
 
-  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     if (!emailRegex.test(email)) {
@@ -57,31 +65,36 @@ export default function SignupPage() {
       toast.error("Password is required");
       return;
     }
-    setLoading(true);
-    try {
-      const response = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
-      const data = await response.json();
-      let errorMessage = "";
-      if (!response.ok) {
-        if (data.error) {
-          errorMessage = data.error;
-        } else {
-          errorMessage = "Registration failed.";
-        }
-        toast.error(errorMessage);
-        setLoading(false);
-        return;
-      }
-      toast.success("Registration successful! Please sign in.");
-      router.push("/login");
-    } catch (error) {
-      toast.error("An error occurred.");
+    if (!firstName || !lastName) {
+      toast.error("Please enter both your first and last name");
+      return;
     }
-    setLoading(false);
+    setLoading(true);
+
+    // Use promise chaining instead of try/catch to avoid Babel React Compiler issues.
+    fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ firstName, lastName, email, password, rememberMe }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          const errorMessage = data.error || "Registration failed.";
+          toast.error(errorMessage);
+          setLoading(false);
+          return;
+        }
+        toast.success("Registration successful! Please sign in.");
+        router.push("/login");
+      })
+      .catch((error) => {
+        console.error("Registration error:", error);
+        toast.error("An error occurred.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const LoadingOverlay = () => (
@@ -94,26 +107,58 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-purple-950">
       {loading && <LoadingOverlay />}
-      <Card className="w-full max-w-sm glass-card">
+      <Card className="w-full max-w-sm glass-card relative">
+        <div className="flex p-6 items-center justify-center">
+          <Image
+            src={"/img/BGM-logo.webp"}
+            alt={"BGM"}
+            height={100}
+            width={100}
+          />
+        </div>
         <div className="absolute top-4 right-4">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded bg-white/20 backdrop-blur-sm dark:bg-slate-800/20 
-                       text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-800/30 
-                       transition-colors"
+            className="p-2 rounded bg-white/20 backdrop-blur-sm dark:bg-slate-800/20 text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-800/30 transition-colors"
           >
-            {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            {theme === "light" ? (
+              <Moon className="h-5 w-5" />
+            ) : (
+              <Sun className="h-5 w-5" />
+            )}
             <span className="sr-only">Toggle theme</span>
           </button>
         </div>
         <CardHeader>
           <CardTitle className="text-2xl">Register</CardTitle>
           <CardDescription>
-            Enter your email and password to create your account.
+            Enter your details to create your account.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSignup}>
           <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="John"
+                required
+                onChange={(e) => setFirstName(e.target.value)}
+                value={firstName}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Doe"
+                required
+                onChange={(e) => setLastName(e.target.value)}
+                value={lastName}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -135,9 +180,21 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
                 endIcon={
-                  passwordVisible
-                    ? (props) => <EyeOffIcon {...props} onClick={() => setPasswordVisible(false)} />
-                    : (props) => <EyeIcon {...props} onClick={() => setPasswordVisible(true)} />
+                  passwordVisible ? (
+                    (props) => (
+                      <EyeOffIcon
+                        {...props}
+                        onClick={() => setPasswordVisible(false)}
+                      />
+                    )
+                  ) : (
+                    (props) => (
+                      <EyeIcon
+                        {...props}
+                        onClick={() => setPasswordVisible(true)}
+                      />
+                    )
+                  )
                 }
               />
             </div>
@@ -145,7 +202,9 @@ export default function SignupPage() {
               <Checkbox
                 id="rememberMe"
                 checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                onCheckedChange={(checked) =>
+                  setRememberMe(checked as boolean)
+                }
               />
               <Label htmlFor="rememberMe">Remember me</Label>
             </div>
@@ -161,6 +220,14 @@ export default function SignupPage() {
           <Button variant="link" onClick={() => router.push("/login")}>
             Already have an account? Sign in
           </Button>
+        </div>
+        <div className="flex p-6 justify-center">
+          <Image
+            src={"/img/waystone.webp"}
+            alt={"waystone"}
+            height={100}
+            width={100}
+          />
         </div>
       </Card>
     </div>
