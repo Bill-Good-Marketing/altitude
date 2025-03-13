@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Checkbox } from "~/components/ui/checkbox";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -105,6 +106,15 @@ export default function LoginPage() {
             <span className="sr-only">Toggle theme</span>
           </button>
         </div>
+        <div className="justify-center">
+          <Image 
+          src={"/img/BGM-logo.webp"} 
+          alt={"BGM"}
+          height={"100"}
+          width={"100"}
+          >
+          </Image>
+        </div>
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>Enter your email and password to log in.</CardDescription>
@@ -160,6 +170,20 @@ export default function LoginPage() {
           </Button>
         </div>
       </Card>
+      <div className="justify-center">
+          <Image 
+          src={"/img/waystone"} 
+          alt={"waystone"}
+          height={"100"}
+          width={"100"}
+          >
+          </Image>
+          <div className="flex justify-center mt-4">
+          <Button variant="link" onClick={() => router.push("https://gainaltitude.ai")}>
+            By Waystone Software
+          </Button>
+          </div>
+        </div>
     </div>
   );
 }

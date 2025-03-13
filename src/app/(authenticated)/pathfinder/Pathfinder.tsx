@@ -1,16 +1,6 @@
 'use client';
 
-//////////////////////////////////////////////
-// Global Declarations for Speech Recognition
-//////////////////////////////////////////////
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "~/components/ui/drawer";
 import { useChat } from "ai/react";
 import { PlaceholdersAndVanishInput } from "~/components/ui/placeholder-and-vanish-input";
@@ -62,19 +52,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Input } from "~/components/ui/input";
 import { toast } from "sonner";
 
-// Initialize the chat hook early so that 'input' is defined
-const { messages, input, append, setInput, setMessages, stop } = useChat({
-  body: {
-    tzOffset: new Date().getTimezoneOffset(),
-    contact: /^\/contacts\/([0-9a-f]{26})\/?$/.test(usePathname())
-      ? { id: useAIContext().contactId, fullName: useAIContext().contactName }
-      : null
-  },
-  onError: (error) => {
-    console.error(error);
-    toast.error(error.message);
+// Declare global types for speech recognition to prevent TS errors.
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
   }
-});
+}
 
 interface CommonRequest {
   id: number;
@@ -94,9 +78,7 @@ export function Pathfinder() {
 
   const [visible, setVisible] = useState(false);
   const [canSubmit, setCanSubmit] = useState(true);
-  const [speechRecognitionEnabled, setSpeechRecognitionEnabled] = useState(false);
-
-  // Common request groups state
+  // For common request groups
   const [commonRequestGroups, setCommonRequestGroups] = useState<CommonRequestGroup[]>([
     {
       id: 1,
@@ -119,85 +101,98 @@ export function Pathfinder() {
     }
   ]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+
+  // Speech recognition state is maintained but not used (disabled)
+  const [speechRecognitionEnabled, setSpeechRecognitionEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [speechToTextPreValue, setSpeechToTextPreValue] = useState("");
   const speechToTextPreValueRef = useStateRef(speechToTextPreValue);
 
-  // isFullscreen indicates expanded vs. collapsed
+  // Fullscreen state for Drawer
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Drawer open state for configuration
+  // Drawer states for configuration and personality selector.
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isPersonalitySelectorOpen, setIsPersonalitySelectorOpen] = useState(false);
 
-  // Memoize current input value when listening toggles
-  const preValue = useMemo(() => input, [isListening]);
-
-  // Handle voice-to-text toggling
-  const handleVoiceToText = () => {
-    setIsListening((prev) => !prev);
-  };
-
-  // Speech recognition effect – runs when isListening or preValue changes
-  useEffect(() => {
-    if (isListening) {
-      const SpeechRecognitionConstructor =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognitionConstructor) {
-        console.error("SpeechRecognition is not supported in this browser.");
-        setSpeechRecognitionEnabled(false);
-        return;
-      }
-      const sr = new SpeechRecognitionConstructor();
-      setSpeechToTextPreValue(preValue);
-      sr.continuous = true;
-      sr.interimResults = true;
-      sr.lang = "en-US";
-      sr.onresult = (event: any) => {
-        let interimTranscript = "";
-        for (const result of event.results) {
-          interimTranscript += result[0].transcript;
-        }
-        interimTranscript = interimTranscript
-          .replace(/ comma/gi, ",")
-          .replace(/ period/gi, ".")
-          .replace(/ question mark/gi, "?")
-          .replace(/ exclamation point/gi, "!")
-          .replace(/ exclamation mark/gi, "!")
-          .replace(/ new line/gi, "\n")
-          .replace(/ new paragraph/gi, "\n")
-          .replace(/ semicolon/gi, ";")
-          .replace(/ colon/gi, ":")
-          .replace(/ hyphen/gi, "-")
-          .replace(/ dash/gi, "-")
-          .replace(/ underscore/gi, "_");
-        if (interimTranscript.length > 0) {
-          setInput(speechToTextPreValueRef.current + interimTranscript);
-        }
-      };
-      sr.start();
-      setRecognition(sr);
-      return () => {
-        sr.stop();
-        setRecognition(null);
-      };
-    } else {
-      if (recognition) {
-        recognition.stop();
-        setRecognition(null);
-      }
-      setSpeechToTextPreValue(input);
-    }
-  }, [isListening, preValue, input, setInput, speechToTextPreValueRef, recognition]);
-
+  // Define file upload handler.
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Implement file upload and processing here
+      // Implement your file upload logic here.
       console.log("File uploaded:", file.name);
     }
   };
+
+  // Rename chat hook variables to avoid conflict with block-scoped "input".
+  const {
+    messages,
+    input: chatInput,
+    append,
+    setInput: setChatInput,
+    setMessages,
+    stop
+  } = useChat({
+    body: {
+      tzOffset: new Date().getTimezoneOffset(),
+      contact: /^\/contacts\/([0-9a-f]{26})\/?$/.test(path)
+        ? { id: contactId, fullName: contactName }
+        : null
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error(error.message);
+    }
+  });
+
+  // Scroll the message box to the bottom whenever messages update.
+  const messageBoxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    messageBoxRef.current?.scrollTo({
+      top: messageBoxRef.current.scrollHeight,
+      behavior: "smooth"
+    });
+  }, [messages]);
+
+  // Merge successive tool calls into one message.
+  const _messages: Message[] = [];
+  for (const message of messages) {
+    if (_messages.length === 0 || message.toolInvocations == null) {
+      _messages.push(message);
+    } else {
+      const lastMessage = _messages[_messages.length - 1];
+      if (lastMessage.toolInvocations != null) {
+        lastMessage.toolInvocations.push(...message.toolInvocations);
+      } else {
+        _messages.push({
+          ...message,
+          toolInvocations: [...message.toolInvocations]
+        });
+      }
+    }
+  }
+
+  // Toggle Drawer visibility using backtick or tilde keys.
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => {
+      if ((event.key === "`" || event.key === "~") && document.activeElement?.id !== "pathfinder-input") {
+        event.preventDefault();
+        setVisible((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keypress", listener);
+    return () => {
+      window.removeEventListener("keypress", listener);
+    };
+  }, []);
+
+  // Disable speech recognition by not running the recognition start/stop logic.
+  // (Alternatively, if you wish to later enable it, you can re-add the effect.)
+  useEffect(() => {
+    setSpeechRecognitionEnabled(false);
+  }, []);
 
   const handleGroupChange = (index: number) => {
     setCurrentGroupIndex(index);
@@ -217,35 +212,6 @@ export function Pathfinder() {
         return null;
     }
   };
-
-  const regex = /^\/contacts\/([0-9a-f]{26})\/?$/;
-
-  // Scroll messages into view when messages update
-  const messageBoxRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    messageBoxRef.current?.scrollTo({
-      top: messageBoxRef.current.scrollHeight,
-      behavior: "smooth"
-    });
-  }, [messages]);
-
-  // Merge successive tool calls into one message
-  const _messages: Message[] = [];
-  for (const message of messages) {
-    if (_messages.length === 0 || message.toolInvocations == null) {
-      _messages.push(message);
-    } else {
-      const lastMessage = _messages[_messages.length - 1];
-      if (lastMessage.toolInvocations != null) {
-        lastMessage.toolInvocations.push(...message.toolInvocations);
-      } else {
-        _messages.push({
-          ...message,
-          toolInvocations: [...message.toolInvocations]
-        });
-      }
-    }
-  }
 
   return (
     <>
@@ -313,7 +279,6 @@ export function Pathfinder() {
                   onClick={() => {
                     if (!canSubmit) return;
                     setCanSubmit(false);
-                    setIsListening(false);
                     append({
                       role: "user",
                       content: request.text
@@ -410,15 +375,14 @@ export function Pathfinder() {
                 <PlaceholdersAndVanishInput
                   id="pathfinder-input"
                   placeholders={["Something or other...", "Another thing...", "Something else..."]}
-                  onChange={setInput}
-                  value={input}
+                  onChange={setChatInput}
+                  value={chatInput}
                   onSubmit={() => {
                     if (!canSubmit) return;
                     setCanSubmit(false);
-                    setIsListening(false);
                     append({
                       role: "user",
-                      content: input
+                      content: chatInput
                     }).then(() => {
                       setCanSubmit(true);
                     });
@@ -460,25 +424,10 @@ export function Pathfinder() {
                     <TooltipContent>Resend last message</TooltipContent>
                   </Tooltip>
 
-                  {speechRecognitionEnabled && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleVoiceToText}>
-                          <Mic className={`h-4 w-4 ${isListening ? "text-red-500" : ""}`} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{isListening ? "Stop Listening" : "Listen"}</TooltipContent>
-                    </Tooltip>
-                  )}
-
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <label htmlFor="file-upload" className="cursor-pointer">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => document.getElementById("file-upload")?.click()}
-                        >
+                        <Button variant="ghost" size="icon">
                           <Upload className="h-4 w-4" />
                         </Button>
                         <input
@@ -515,8 +464,7 @@ export function Pathfinder() {
 }
 
 /**
- * Below are your existing “ConfigDrawer” and “PersonalitySelector” components.
- * Only the styling for the main <DrawerContent> above is changed to behave like a bottom fixed footer.
+ * PersonalitySelector Component
  */
 type PersonalitySelectorProps = {
   isOpen: boolean;
@@ -552,11 +500,7 @@ function PersonalitySelector({ isOpen, onClose, isFullScreen }: PersonalitySelec
           transition={{ duration: 0.3 }}
           className="p-4 h-full flex flex-col"
         >
-          <RadioGroup
-            value={selectedPersonality}
-            onValueChange={setSelectedPersonality}
-            className="space-y-2"
-          >
+          <RadioGroup value={selectedPersonality} onValueChange={setSelectedPersonality} className="space-y-2">
             {personalities.map((personality) => (
               <div key={personality.id} className="flex items-center space-x-2">
                 <RadioGroupItem value={personality.id} id={personality.id} />
@@ -579,6 +523,9 @@ function PersonalitySelector({ isOpen, onClose, isFullScreen }: PersonalitySelec
   );
 }
 
+/**
+ * ConfigDrawer Component
+ */
 type ConfigDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -587,7 +534,7 @@ type ConfigDrawerProps = {
   isFullScreen: boolean;
 };
 
-export default function ConfigDrawer({
+export function ConfigDrawer({
   isOpen,
   onClose,
   commonRequestGroups,
