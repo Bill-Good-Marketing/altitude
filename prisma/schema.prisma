@@ -809,6 +809,7 @@ enum AuditEventType {
 }
 
 model ContactTimelineEventContactJoin {
+  /// @@wrapper-ignore
   contactEventId Bytes   @map("contactEventId")
   contactEventRelation ContactTimelineEvent @relation(fields: [contactEventId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
