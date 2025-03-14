@@ -33,18 +33,24 @@ export async function POST(request: Request) {
 
     // Ensure there is a valid tenet to reference.
     // Here we try to find a default tenet (for example, one named "Default Tenet").
+
+    // TODO: In the future, we'll want to create a tenet if they're paying, otherwise assign them to the demo tenet (read only) or some sort of free trial (also creates a tenet)
+    // Until they upgrade to paid at which point we create a tenet.
+
+    // TODO: Separate flow for adding another seat to a tenet. Will require user to set password when clicking a magic link.
+    
     let defaultTenet = await dbClient.tenet.findUnique({
-      where: { name: "Default Tenet" },
+      where: { name: "Test Tenet" },
     });
-    if (!defaultTenet) {
-      // Create the default tenet if it doesn't exist.
-      defaultTenet = await dbClient.tenet.create({
-        data: {
-          id: Buffer.from(generateGuid()) as Buffer,
-          name: "Default Tenet",
-        },
-      });
-    }
+    // if (!defaultTenet) {
+    //   // Create the default tenet if it doesn't exist.
+    //   defaultTenet = await dbClient.tenet.create({
+    //     data: {
+    //       id: Buffer.from(generateGuid()) as Buffer,
+    //       name: "Default Tenet",
+    //     },
+    //   });
+    // }
 
     // Create new user record.
     const newUser = new User(undefined, {
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
       firstName,
       lastName,
       fullName: `${firstName} ${lastName}`,
-      password: hashPassword(password),
+      password,
       enabled: true,
       type: AccessGroup.CLIENT,
       tenetId: defaultTenet.id as Buffer,
